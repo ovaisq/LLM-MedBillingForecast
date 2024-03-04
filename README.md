@@ -33,9 +33,9 @@ ProcessedRedditData -- "Un-Encrypted" --> D
 
 RDD --> RedditOllama
 RDE --> RedditOllama
-RDD --> D
-RDE --> D
-RDC --> D
+RDD --"Un-Encrypted"--> D
+RDE --"Un-Encrypted"--> D
+RDC --"Un-Encrypted"--> D
 OPDA --> PatientOllama
 OPDB -- "Un-Encrypted" --> D
 DiagnosticKeyWords -- "Un-Encrypted" --> D
