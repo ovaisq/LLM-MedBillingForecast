@@ -26,10 +26,32 @@ Z --> Local
 F --> Reddit
 
 subgraph Local
-PatientOllama --> PatientData
-RedditOllama --> RedditData
-PatientData -- Encrypted --> D
-RedditData -- Un-Encrypted --> D
+PatientOllama --> ProcessedPatientData
+RedditOllama --> ProcessedRedditData
+PJSON -- Encrypted --> D
+ProcessedRedditData -- "Un-Encrypted" --> D
+
+RDD --> RedditOllama
+RDE --> RedditOllama
+RDD --> D
+RDE --> D
+RDC --> D
+OPDA --> PatientOllama
+OPDB -- "Un-Encrypted" --> D
+DiagnosticKeyWords -- "Un-Encrypted" --> D
+
+subgraph OriginalPatientData["Original Patient Data"]
+OPDA(Clinical Notes OSCE)
+OPDB(Patient ID)
+end
+subgraph RedditData["Original Reddit Data"]
+subgraph RDBMS
+RDD(Redditor Posts)
+RDE(Redditor Comments)
+RDC(Subreddits)
+end
+end
+
 subgraph OLLAMA-LLM
 
 subgraph RedditOllama["Reddit"]
@@ -42,16 +64,15 @@ B
 BA
 end
 end
-subgraph PatientData
-PDA(Recommended Diagnoses)
-PDB(Clinical Notes OSCE)
+subgraph ProcessedPatientData["Processed Patient Data"]
+subgraph PJSON["JSON"]
+PDB(OSCE Summarized)
+PDC(Recommended Diagnoses)
 end
-subgraph RedditData
-subgraph RDBMS
-RDC(Subreddits)
-RDD(Redditor Posts)
-RDE(Redditor Comments)
+subgraph DiagnosticKeyWords["Key Words"]
 end
+end
+subgraph ProcessedRedditData["Processed Reddit Data"]
 subgraph JSON
 RDA(Analyzed Posts)
 RDB(Analyzed Comments)
