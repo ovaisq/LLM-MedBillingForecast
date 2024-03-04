@@ -236,6 +236,21 @@ def analyze_comment(comment_id):
     prompt = 'respond to this comment: ' + text
     asyncio.run(prompt_chat_n_store('reddit', 'comment', comment_id, prompt))
 
+@app.route('/analyze_visit_note', methods=['GET'])
+@jwt_required()
+def analyze_visit_note_endpoint():
+    """Analyze Visit OSCE format Visit Note
+    """
+
+    visit_note_id = request.args.get('visit_note_id')
+    analyze_visit_note(visit_note_id)
+    return jsonify({'message': 'analyze_visit_note endpoint'})
+
+def analyze_visit_note(visit_note_id):
+	# query db for visit note if note exists then
+	# analyze it through meditron and medllama
+	pass
+
 async def prompt_chat_n_store(source, category, reference_id, content, encrypt_analysis=False):
     """Llama Chat Prompting and response
     """
