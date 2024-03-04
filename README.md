@@ -1,15 +1,135 @@
 ## ZOLLAMA-GPT
-Collects submissions, comments for each submission, author of each submission, author of each comment to each submission, and all comments for each author.
-*  Also, subscribes to subreddit that a submission was posted to
+
+### General Overview
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue'}}}%%
+flowchart TD
+Z((Zollama
+Service API))
+A(gemma)
+AZA(llama2)
+AZB(deepseek-llm)
+B(meditron)
+BA(medllama)
+C(Patient)
+F(Redditor)
+D[(PostgreSQL)]
+AE(Posts)
+AF(Comments)
+AG(Subreddits)
+CAC(Clinical Notes OSCE)
+Reddit --> Z
+C --> EMR
+EMR --> Z
+Z --> Local
+F --> Reddit
+
+subgraph Local
+PatientOllama --> PatientData
+RedditOllama --> RedditData
+PatientData -- Encrypted --> D
+RedditData -- Un-Encrypted --> D
+subgraph OLLAMA-LLM
+
+subgraph RedditOllama["Reddit"]
+A
+AZA
+AZB
+end
+subgraph PatientOllama["Patient"]
+B
+BA
+end
+end
+subgraph PatientData
+PDA(Recommended Diagnoses)
+PDB(Clinical Notes OSCE)
+end
+subgraph RedditData
+subgraph RDBMS
+RDC(Subreddits)
+RDD(Redditor Posts)
+RDE(Redditor Comments)
+end
+subgraph JSON
+RDA(Analyzed Posts)
+RDB(Analyzed Comments)
+end
+end
+end
+subgraph EMR
+CAC
+end
+subgraph Reddit
+AE
+AF
+AG
+end
+```
+
+#### API Overview
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue'}}}%%
+graph LR
+    sub["/login"] --> sub3
+    sub["/analyze_post"] --> sub1
+    sub["/analyze_posts"] --> sub2
+    sub["/analyze_comment"] --> sub9
+    sub["/analyze_comments"] --> sub10
+    sub["/get_sub_post"] --> sub4
+    sub["/get_sub_posts"] --> sub5
+    sub["/get_author_comments"] --> sub6
+    sub["/get_authors_comments"] --> sub7
+    sub["/get_and_analyze_post"] --> sub12
+    sub["/join_new_subs"] --> sub11
+    sub["CLIENT"] --> sub8
+    sub1["GET: Analyze a single Reddit post"]
+    sub2["GET: Analyze all Reddit posts in the database"]
+    sub3["POST: Generate JWT"]
+    sub4["GET: Get submission post content for a given post id"]
+    sub5["GET: Get submission posts for a given subreddit"]
+    sub6["GET: Get all comments for a given redditor"]
+    sub7["GET: Get all comments for each redditor from a list of authors in the database"]
+    sub8["GET: Join all new subreddits from post database"]
+    sub9["GET: Chat prompt a given comment_id that's stored in DB"]
+    sub10["GET: Chat prompt all comments that are stored in DB"]
+    sub11["GET: Join all new subs from the post table in the database"]
+    sub12["GET: Fetch post from Reddit, then Chat prompt a given post_id"]
+```
+
+
+**From EMR**: 
+* It collects medical conversations in the format of Objective Structured Clinical Examinations (OSCE)
+* Summarizes the medical conversation into a prompt
+* Analyzes the summarized conversation through meditron, and medllama LLMs.
+  - Picks out keywords
+* Encrypts the analyzed text and stores it as part of searchable json document in PostgreSQL
+  
+**From Reddit**:
+* Service collects
+  - submissions
+  - comments for each submission
+  - author of each submission
+  - author of each comment to each submission
+  - and all comments for each author.
+*  Subscribes to subreddit that a submission was posted to
+
+** Deployed as WSGI **  
 *  Uses Gunicorn WSGI
 
+#### How-to Run this
 * Install Python Modules:
     > pip3 install -r requirements.txt
 
 * Get Reddit API key: https://www.reddit.com/wiki/api/
 
-* Gen SSL key/cert
+* Gen SSL key/cert for secure connection to the service
     > openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 3650
+
+* Gen Symmetric encryption key for encrypting any text
+   > ./tools/generate_keys.py
+   > Encrption Key File text_encryption.key created
 
 * Create Database and tables:
     See **reddit.sql**
@@ -105,15 +225,17 @@ Environment="OLLAMA_HOST=0.0.0.0"
     ENDPOINT_URL=
     OLLAMA_API_URL=
     LLMS=
+    MEDLLMS=
+    ENCRYPTION_KEY=
   ```
 
-* Run Reddit llama-gpt Service:
+* Run Zollama-GPT Service:
     (see https://docs.gunicorn.org/en/stable/settings.html for config details)
 ```shell
     > gunicorn --certfile=cert.pem \
                --keyfile=key.pem \
                --bind 0.0.0.0:5000 \
-               reddit_gunicorn:app \
+               zollama:app \
                --timeout 2592000 \
                --threads 4 \
                --reload
@@ -135,18 +257,18 @@ Environment="OLLAMA_HOST=0.0.0.0"
         - retry after 429
         - break down longer list of items into list of lists with small
             chunks
-    - Create Apache Superset Dashboards
 
 #### Example
+* These examples assume that environment variable **API_KEY** is using a valid API_KEY
+
 
 **Get All comments for all Redditors in the database**
 ```shell
 > export api_key=<api_key>
 >
-> "export AT=$(curl -sk -X POST -H "Content-Type: application/json" \
--d '{"api_key":"'${api_key}'"}' https://127.0.0.1:5000/login \
-| jq -r .access_token) && curl -sk -X GET \
--H "Authorization: Bearer ${AT}" 'https://127.0.0.1:5000/get_authors_comments'
+> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${api_key}'"}' \
+  https://127.0.0.1:5000/login | jq -r .access_token) && curl -sk -X GET -H \
+  "Authorization: Bearer ${AT}" 'https://127.0.0.1:5000/get_authors_comments'
 ```
 **On Service Console**:
 ```shell
@@ -157,9 +279,18 @@ Environment="OLLAMA_HOST=0.0.0.0"
     INFO:root:Processing Author Redditor
     INFO:root:Processing Author Redditor
 ```
-
-#### General Overview
-![workflow](workflow.png)
+**Analyze a Post using Post ID that already exists in a post table in the database**
+```shell
+> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${API_KEY}'"}' \
+  https://127.0.0.1:5001/login | jq -r .access_token) && curl -sk -X GET -H \
+  "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_post?post_id=<Reddit Post ID>'
+```
+**Get and Analyze a Post using Post ID that has not yet been added to the post table in the database**
+```shell
+> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${API_KEY}'"}' \
+  https://127.0.0.1:5001/login | jq -r .access_token) && curl -sk -X GET -H \
+  "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/get_and_analyze_post?post_id=<Reddit Post ID>'
+```
 
 ### General Workflow
 ```mermaid
@@ -185,27 +316,6 @@ flowchart TD
     P -- Yes --> Q[Join New Subreddits]
     Q --> O
     P -- No --> R[End]
-```
-
-#### API Overview
-```mermaid
-graph LR
-    sub["/analyze_post"] --> sub1
-    sub["/analyze_posts"] --> sub2
-    sub["/login"] --> sub3
-    sub["/get_sub_post"] --> sub4
-    sub["/get_sub_posts"] --> sub5
-    sub["/get_author_comments"] --> sub6
-    sub["/get_authors_comments"] --> sub7
-    sub["CLIENT"] --> sub8
-    sub1["GET: Analyze a single Reddit post"]
-    sub2["GET: Analyze all Reddit posts in the database"]
-    sub3["POST: Generate JWT"]
-    sub4["GET: Get submission post content for a given post id"]
-    sub5["GET: Get submission posts for a given subreddit"]
-    sub6["GET: Get all comments for a given redditor"]
-    sub7["GET: Get all comments for each redditor from a list of authors in the database"]
-    sub8["GET: Join all new subreddits from post database"]
 ```
 
 #### Database Schema
