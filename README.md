@@ -1,11 +1,11 @@
-## ZOLLAMA-GPT
+## ZOllama-GPT
 
 ### General Overview
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue'}}}%%
 flowchart TD
-Z((Zollama
+Z((ZOllama
 Service API))
 A(gemma)
 AZA(llama2)
@@ -250,7 +250,7 @@ Environment="OLLAMA_HOST=0.0.0.0"
     ENCRYPTION_KEY=
   ```
 
-* Run Zollama-GPT Service:
+* Run ZOllama-GPT Service:
     (see https://docs.gunicorn.org/en/stable/settings.html for config details)
 ```shell
     > gunicorn --certfile=cert.pem \
