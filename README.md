@@ -1,4 +1,4 @@
-## Reddit Data Scraper
+## ZOLLAMA-GPT
 Collects submissions, comments for each submission, author of each submission, author of each comment to each submission, and all comments for each author.
 *  Also, subscribes to subreddit that a submission was posted to
 *  Uses Gunicorn WSGI
