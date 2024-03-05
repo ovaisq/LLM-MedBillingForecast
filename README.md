@@ -5,7 +5,7 @@
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue'}}}%%
 flowchart TD
-Z((ZOllama
+Z((Zollama
 Service API))
 A(gemma)
 AZA(llama2)
@@ -26,6 +26,7 @@ Z --> Local
 F --> Reddit
 
 subgraph Local
+
 PatientOllama --> ProcessedPatientData
 RedditOllama --> ProcessedRedditData
 PJSON -- Encrypted --> D
@@ -36,7 +37,8 @@ RDE --> RedditOllama
 RDD --"Un-Encrypted"--> D
 RDE --"Un-Encrypted"--> D
 RDC --"Un-Encrypted"--> D
-OPDA --> PatientOllama
+OPDA --> Summary
+Summary --> PatientOllama
 OPDB -- "Un-Encrypted" --> D
 DiagnosticKeyWords -- "Un-Encrypted" --> D
 
@@ -59,14 +61,17 @@ A
 AZA
 AZB
 end
-subgraph PatientOllama["Patient"]
+subgraph Summary["Summarize OSCE Notes"]
+SA(deepseek-llm)
+end
+subgraph PatientOllama["Patient Diagnoses"]
 B
 BA
 end
 end
 subgraph ProcessedPatientData["Processed Patient Data"]
 subgraph PJSON["JSON"]
-PDB(OSCE Summarized)
+PDB(Summarized OSCE Notes)
 PDC(Recommended Diagnoses)
 end
 subgraph DiagnosticKeyWords["Key Words"]
