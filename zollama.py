@@ -76,7 +76,7 @@ from reddit_api import create_reddit_instance
 from utils import unix_ts_str, sleep_to_avoid_429, sanitize_string, ts_int_to_dt_obj
 from utils import gen_internal_id
 
-app = Flask('ZOLLAMA-GPT')
+app = Flask('ZOllama-GPT')
 
 # constants
 NUM_ELEMENTS_CHUNK = 25
