@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS patient_notes (
 	timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
 	patient_note_sha_512 TEXT UNIQUE NOT NULL,
     patient_id TEXT NOT NULL,
-	patient_note_id TEXT UNIQUE NOT NULL,
     patient_note JSONB NOT NULL
 );
 
@@ -74,7 +73,6 @@ CREATE TABLE IF NOT EXISTS patient_documents (
 --Patient Notes
 CREATE INDEX IF NOT EXISTS patient_note_sha_512_index ON patient_notes (patient_note_sha_512);
 CREATE INDEX IF NOT EXISTS patient_id_index ON patient_notes (patient_id);
-CREATE INDEX IF NOT EXISTS patient_note_id_index ON patient_notes (patient_note_id);
 CREATE INDEX IF NOT EXISTS timestamp_index ON patient_notes (timestamp);
 CREATE INDEX IF NOT EXISTS patient_note_gin_index ON patient_notes USING gin(patient_note jsonb_path_ops);
 --Patient Documents

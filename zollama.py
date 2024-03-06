@@ -69,9 +69,10 @@ from database import db_get_authors
 from database import insert_data_into_table
 from database import get_new_data_ids
 from database import get_select_query_results
+from database import get_select_query_results2
 from database import db_get_post_ids
 from database import db_get_comment_ids
-from encryption import encrypt_text
+from encryption import encrypt_text, decrypt_text
 from reddit_api import create_reddit_instance
 from utils import unix_ts_str, sleep_to_avoid_429, sanitize_string, ts_int_to_dt_obj
 from utils import gen_internal_id
@@ -247,69 +248,92 @@ def analyze_visit_note_endpoint():
     return jsonify({'message': 'analyze_visit_note endpoint'})
 
 def analyze_visit_note(visit_note_id):
-	# query db for visit note if note exists then
-	# analyze it through meditron and medllama
-	pass
 
-async def prompt_chat_n_store(source, category, reference_id, content, encrypt_analysis=False):
+    sql_query = f"""SELECT 
+                        patient_id, patient_note_sha_512, patient_note 
+                   FROM 
+                        patient_notes
+                   WHERE patient_note_sha_512 = '{visit_note_id}';
+                """
+
+    visit_notes = get_select_query_results2(sql_query) 
+
+    for visit_note in visit_notes:
+        source = 'healthcare'
+        category = 'patient'
+        patient_id = visit_note['patient_id']
+        content = decrypt_text(visit_note['patient_note']['note'])
+        prompt = "based on doctor patient visit note, where P is patient, and D is doctor, summarize the conversation into a single paragraph prompt, include patient's age and gender if stated, keep all the pertinent details: "
+        summarized_obj = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
+        prompt = 'Diagnose this patient: '
+        analyzed_obj = asyncio.run(prompt_chat('medllama2', prompt + summarized_obj['analysis'], True))
+
+        patient_data_obj = {
+                            'schema_version' : '3',
+                            'source' : source,
+                            'category' : category,
+                            'patient_id' : patient_id,
+                            'patient_note_id' : visit_note['patient_note_sha_512'],
+                            'osce_note_summarized' : encrypt_text(summarized_obj['analysis']).decode('utf-8'),
+                            'analysis_document' : analyzed_obj['analysis']
+                            }
+        patient_analysis_data = {
+                                     'timestamp' : analyzed_obj['timestamp'],
+                                     'patient_analysis_sha_512' : analyzed_obj['shasum_512'],
+                                     'patient_id' : patient_id,
+                                     'patient_note_id' : visit_note['patient_note_sha_512'],
+                                     'analysis_document' : json.dumps(patient_data_obj)
+                                    }
+
+        insert_data_into_table('patient_documents', patient_analysis_data) 
+
+
+async def prompt_chat(llm, content, encrypt_analysis=False):
     """Llama Chat Prompting and response
     """
 
     dt = ts_int_to_dt_obj()
     client = AsyncClient(host=CONFIG.get('service','OLLAMA_API_URL'))
-    for llm in LLMS:
-        logging.info('Running %s for %s', llm, reference_id)
-        try:
-            response = await client.chat(
-                                         model=llm,
-                                         stream=False,
-                                         messages=[
-                                                 {
-                                                     'role': 'user',
-                                                     'content': content
-                                                 },
-                                                 ],
-                                         options = {
-                                                     'temperature' : 0
-                                                 }
-                                         )
+    logging.info('Running %s for %s', llm)
+    try:
+        response = await client.chat(
+                                        model=llm,
+                                        stream=False,
+                                        messages=[
+                                                {
+                                                    'role': 'user',
+                                                    'content': content
+                                                },
+                                                ],
+                                        options = {
+                                                    'temperature' : 0
+                                                }
+                                        )
 
-            # chatgpt analysis
-            analysis = response['message']['content']
-            analysis = sanitize_string(analysis)
+        # chatgpt analysis
+        analysis = response['message']['content']
+        analysis = sanitize_string(analysis)
 
-            # this is for the analysis text only - the idea is to avoid
-            #  duplicate text document, to allow indexing the column so
-            #  to speed up search/lookups
-            analysis_sha512 = hashlib.sha512(str.encode(analysis)).hexdigest()
+        # this is for the analysis text only - the idea is to avoid
+        #  duplicate text document, to allow indexing the column so
+        #  to speed up search/lookups
+        analysis_sha512 = hashlib.sha512(str.encode(analysis)).hexdigest()
 
-            # see encryption.py module
-            # encrypt text *** make sure that encryption key file is secure! ***
-            if encrypt_analysis:
-                analysis = encrypt_text(analysis).decode('utf-8')
+        # see encryption.py module
+        # encrypt text *** make sure that encryption key file is secure! ***
+        if encrypt_analysis:
+            analysis = encrypt_text(analysis).decode('utf-8')
 
-            # jsonb document
-            #  schema_version key added starting v2
-            analysis_document = {
-                                'schema_version' : '3',
-                                'source' : source,
-                                'category' : category,
-                                'reference_id' : reference_id,
-                                'llm' : llm,
-                                'analysis' : analysis
-                                }
-            analysis_data = {
-                            'timestamp': dt,
-                            'shasum_512' : analysis_sha512,
-                            'analysis_document' : json.dumps(analysis_document)
-                            }
-            insert_data_into_table('analysis_documents', analysis_data)
-            response = {}
-            analysis_document = {}
-            analysis_data = {}
-        except (httpx.ReadError, httpx.ConnectError) as e:
-            logging.error('%s',e.args[0])
-            raise httpx.ConnectError('Unable to reach Ollama Server') from None
+        analyzed_obj = {
+                        'timestamp' : dt,
+                        'shasum_512' : analysis_sha512,
+                        'analysis' : analysis
+                        }
+
+        return analyzed_obj
+    except (httpx.ReadError, httpx.ConnectError) as e:
+        logging.error('%s',e.args[0])
+        raise httpx.ConnectError('Unable to reach Ollama Server') from None
 
 @app.route('/get_sub_post', methods=['GET'])
 @jwt_required()

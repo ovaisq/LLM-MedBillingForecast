@@ -56,6 +56,20 @@ def get_select_query_results(sql_query):
         logging.error(f"{e}")
         raise
 
+def get_select_query_results2(sql_query):
+    """Execute a query, return all rows for the query as list of dictionaries"""
+
+    conn, cur = psql_connection()
+    try:
+        cur.execute(sql_query)
+        columns = [desc[0] for desc in cur.description]  # Fetch column names
+        result = [dict(zip(columns, row)) for row in cur.fetchall()]
+        conn.close()
+        return result
+    except psycopg2.Error as e:
+        logging.error(f"{e}")
+        raise
+
 def get_new_data_ids(table_name, unique_column, reddit_data):
     """Get object ids for new messages on reddit
         query db for existing ids
