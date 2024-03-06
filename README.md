@@ -3,17 +3,20 @@
 ### General Overview
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue'}}}%%
+---
+displayMode : compact
+---
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue', 'fontSize':'20px',"fontFamily": "Trebuchet MS, Verdana, Arial, Sans-Serif"}}}%%
 flowchart TD
-Z((Zollama
-Service API))
+Z(("`**Zollama
+Service API**`"))
 A(gemma)
 AZA(llama2)
 AZB(deepseek-llm)
 B(meditron)
 BA(medllama)
-C(Patient)
-F(Redditor)
+C("`**Patient**`")
+F("`**Redditor**`")
 D[(PostgreSQL)]
 AE(Posts)
 AF(Comments)
@@ -25,7 +28,7 @@ EMR --> Z
 Z --> Local
 F --> Reddit
 
-subgraph Local
+subgraph Local["`**Local Environment**`"]
 
 PatientOllama --> ProcessedPatientData
 RedditOllama --> ProcessedRedditData
@@ -42,52 +45,52 @@ Summary --> PatientOllama
 OPDB -- "Un-Encrypted" --> D
 DiagnosticKeyWords -- "Un-Encrypted" --> D
 
-subgraph OriginalPatientData["Original Patient Data"]
+subgraph OriginalPatientData["`**Original Patient Data**`"]
 OPDA(Clinical Notes OSCE)
 OPDB(Patient ID)
 end
-subgraph RedditData["Original Reddit Data"]
-subgraph RDBMS
+subgraph RedditData["`**Original Reddit Data**`"]
+subgraph RDBMS["`_RDBMS_`"]
 RDD(Redditor Posts)
 RDE(Redditor Comments)
 RDC(Subreddits)
 end
 end
 
-subgraph OLLAMA-LLM
+subgraph OLLAMA-LLM["`**OLLAMA-LLM**`"]
 
-subgraph RedditOllama["Reddit"]
+subgraph RedditOllama["`**Reddit**`"]
 A
 AZA
 AZB
 end
-subgraph Summary["Summarize OSCE Notes"]
+subgraph Summary["`**Summarize Notes**`" ]
 SA(deepseek-llm)
 end
-subgraph PatientOllama["Patient Diagnoses"]
+subgraph PatientOllama["`**Patient Diagnoses**`"]
 B
 BA
 end
 end
-subgraph ProcessedPatientData["Processed Patient Data"]
-subgraph PJSON["JSON"]
+subgraph ProcessedPatientData["`**Processed Patient Data**`"]
+subgraph PJSON["`_JSON_`"]
 PDB(Summarized OSCE Notes)
 PDC(Recommended Diagnoses)
 end
 subgraph DiagnosticKeyWords["Key Words"]
 end
 end
-subgraph ProcessedRedditData["Processed Reddit Data"]
-subgraph JSON
+subgraph ProcessedRedditData["`**Processed Reddit Data**`"]
+subgraph JSON["`_JSON_`"]
 RDA(Analyzed Posts)
 RDB(Analyzed Comments)
 end
 end
 end
-subgraph EMR
+subgraph EMR["`**EMR**`"]
 CAC
 end
-subgraph Reddit
+subgraph Reddit["`**Reddit**`"]
 AE
 AF
 AG
