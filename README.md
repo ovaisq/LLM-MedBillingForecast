@@ -3,29 +3,31 @@
 ### General Overview
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue', 'fontSize':'20px',"fontFamily": "Trebuchet MS, Verdana, Arial, Sans-Serif"}}}%%
 flowchart TD
-Z((Zollama
-Service API))
-A(gemma)
-AZA(llama2)
-AZB(deepseek-llm)
-B(meditron)
-BA(medllama)
-C(Patient)
-F(Redditor)
-D[(PostgreSQL)]
-AE(Posts)
-AF(Comments)
-AG(Subreddits)
-CAC(Clinical Notes OSCE)
-Reddit --> Z
-C --> EMR
-EMR --> Z
-Z --> Local
-F --> Reddit
+    classDef subgraph_padding fill:none,stroke:none
+    Z(("`**Zollama
+    Service API**`"))
+    A(gemma)
+    AZA(llama2)
+    AZB(deepseek-llm)
+    B(meditron)
+    BA(medllama)
+    C("`**Patient**`")
+    F("`**Redditor**`")
+    D[(PostgreSQL)]
+    AE(Posts)
+    AF(Comments)
+    AG(Subreddits)
+    CAC(Clinical Notes OSCE)
+    Reddit --> Z
+    C --> EMR
+    EMR --> Z
+    Z --> Local
+    F --> Reddit
 
-subgraph Local
+subgraph Local["`**Local Environment**`"]
+
 PatientOllama --> ProcessedPatientData
 RedditOllama --> ProcessedRedditData
 PJSON -- Encrypted --> D
@@ -36,57 +38,72 @@ RDE --> RedditOllama
 RDD --"Un-Encrypted"--> D
 RDE --"Un-Encrypted"--> D
 RDC --"Un-Encrypted"--> D
-OPDA --> PatientOllama
+OPDA --> Summary
+Summary --> PatientOllama
 OPDB -- "Un-Encrypted" --> D
-DiagnosticKeyWords -- "Un-Encrypted" --> D
+PPJSON -- "Un-Encrypted" --> D
 
-subgraph OriginalPatientData["Original Patient Data"]
+subgraph OriginalPatientData["`**Original Patient Data**`"]
 OPDA(Clinical Notes OSCE)
 OPDB(Patient ID)
 end
-subgraph RedditData["Original Reddit Data"]
-subgraph RDBMS
-RDD(Redditor Posts)
-RDE(Redditor Comments)
-RDC(Subreddits)
-end
-end
 
-subgraph OLLAMA-LLM
-
-subgraph RedditOllama["Reddit"]
-A
-AZA
-AZB
-end
-subgraph PatientOllama["Patient"]
-B
-BA
+subgraph RedditData["`**Original Reddit Data**`"]
+subgraph RDBMS["`_RDBMS_`"]
+    RDD(Redditor Posts)
+    RDE(Redditor Comments)
+    RDC(Subreddits)
 end
 end
-subgraph ProcessedPatientData["Processed Patient Data"]
-subgraph PJSON["JSON"]
-PDB(OSCE Summarized)
-PDC(Recommended Diagnoses)
+subgraph OLLAMA-LLM["`**OLLAMA-LLM**`"]
+subgraph RedditOllama["`**Reddit**`"]
+    A
+    AZA
+    AZB
 end
+subgraph Summary["`**Summarize Notes**`" ]
+    SA(deepseek-llm)
+end
+subgraph PatientOllama["`**Patient Diagnoses**`"]
+    B
+    BA
+end
+end
+subgraph ProcessedPatientData["`**Processed Patient Data**`"]
+subgraph subgraph_padding2[ ]
+subgraph PJSON["`_JSON_`"]
+    PDB(Summarized OSCE Notes)
+    PDC(Recommended Diagnoses)
+end
+subgraph PPJSON["`_JSON_`"]
 subgraph DiagnosticKeyWords["Key Words"]
 end
+subgraph ICD["ICD Codes"]
 end
-subgraph ProcessedRedditData["Processed Reddit Data"]
-subgraph JSON
-RDA(Analyzed Posts)
-RDB(Analyzed Comments)
+subgraph CPT["CPT Codes"]
 end
 end
 end
-subgraph EMR
-CAC
 end
-subgraph Reddit
-AE
-AF
-AG
+subgraph ProcessedRedditData["`**Processed Reddit Data**`"]
+subgraph subgraph_padding1[ ]
+subgraph JSON["`_JSON_`"]
+    RDA(Analyzed Posts)
+    RDB(Analyzed Comments)
 end
+end
+end
+end
+subgraph EMR["`**EMR**`"]
+    CAC
+end
+subgraph Reddit["`**Reddit**`"]
+    AE
+    AF
+    AG
+end
+class subgraph_padding1 subgraph_padding
+class subgraph_padding2 subgraph_padding
 ```
 
 #### API Overview
