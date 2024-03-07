@@ -103,7 +103,9 @@ graph LR
     sub["/get_author_comments"] --> sub6
     sub["/get_authors_comments"] --> sub7
     sub["/get_and_analyze_post"] --> sub12
+    sub["/get_and_analyze_comment"] --> sub14
     sub["/join_new_subs"] --> sub11
+    sub["/analyze_visit_note"] --> sub13
     sub["CLIENT"] --> sub8
     sub1["GET: Analyze a single Reddit post"]
     sub2["GET: Analyze all Reddit posts in the database"]
@@ -117,6 +119,8 @@ graph LR
     sub10["GET: Chat prompt all comments that are stored in DB"]
     sub11["GET: Join all new subs from the post table in the database"]
     sub12["GET: Fetch post from Reddit, then Chat prompt a given post_id"]
+    sub13["GET: Analyze Visit OSCE format Visit Note"]
+    sub14["GET: Fetch comment from Reddit, then Chat prompt a given comment_id"]
 ```
 
 
