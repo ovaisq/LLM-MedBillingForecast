@@ -1,22 +1,19 @@
-## ZOllama-GPT
+## ZOLLAMA-GPT
 
 ### General Overview
 
 ```mermaid
----
-displayMode : compact
----
-%%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue', 'fontSize':'20px',"fontFamily": "Trebuchet MS, Verdana, Arial, Sans-Serif"}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue'}}}%%
 flowchart TD
-Z(("`**Zollama
-Service API**`"))
+Z((Zollama
+Service API))
 A(gemma)
 AZA(llama2)
 AZB(deepseek-llm)
 B(meditron)
 BA(medllama)
-C("`**Patient**`")
-F("`**Redditor**`")
+C(Patient)
+F(Redditor)
 D[(PostgreSQL)]
 AE(Posts)
 AF(Comments)
@@ -28,8 +25,7 @@ EMR --> Z
 Z --> Local
 F --> Reddit
 
-subgraph Local["`**Local Environment**`"]
-
+subgraph Local
 PatientOllama --> ProcessedPatientData
 RedditOllama --> ProcessedRedditData
 PJSON -- Encrypted --> D
@@ -40,57 +36,53 @@ RDE --> RedditOllama
 RDD --"Un-Encrypted"--> D
 RDE --"Un-Encrypted"--> D
 RDC --"Un-Encrypted"--> D
-OPDA --> Summary
-Summary --> PatientOllama
+OPDA --> PatientOllama
 OPDB -- "Un-Encrypted" --> D
 DiagnosticKeyWords -- "Un-Encrypted" --> D
 
-subgraph OriginalPatientData["`**Original Patient Data**`"]
+subgraph OriginalPatientData["Original Patient Data"]
 OPDA(Clinical Notes OSCE)
 OPDB(Patient ID)
 end
-subgraph RedditData["`**Original Reddit Data**`"]
-subgraph RDBMS["`_RDBMS_`"]
+subgraph RedditData["Original Reddit Data"]
+subgraph RDBMS
 RDD(Redditor Posts)
 RDE(Redditor Comments)
 RDC(Subreddits)
 end
 end
 
-subgraph OLLAMA-LLM["`**OLLAMA-LLM**`"]
+subgraph OLLAMA-LLM
 
-subgraph RedditOllama["`**Reddit**`"]
+subgraph RedditOllama["Reddit"]
 A
 AZA
 AZB
 end
-subgraph Summary["`**Summarize Notes**`" ]
-SA(deepseek-llm)
-end
-subgraph PatientOllama["`**Patient Diagnoses**`"]
+subgraph PatientOllama["Patient"]
 B
 BA
 end
 end
-subgraph ProcessedPatientData["`**Processed Patient Data**`"]
-subgraph PJSON["`_JSON_`"]
-PDB(Summarized OSCE Notes)
+subgraph ProcessedPatientData["Processed Patient Data"]
+subgraph PJSON["JSON"]
+PDB(OSCE Summarized)
 PDC(Recommended Diagnoses)
 end
 subgraph DiagnosticKeyWords["Key Words"]
 end
 end
-subgraph ProcessedRedditData["`**Processed Reddit Data**`"]
-subgraph JSON["`_JSON_`"]
+subgraph ProcessedRedditData["Processed Reddit Data"]
+subgraph JSON
 RDA(Analyzed Posts)
 RDB(Analyzed Comments)
 end
 end
 end
-subgraph EMR["`**EMR**`"]
+subgraph EMR
 CAC
 end
-subgraph Reddit["`**Reddit**`"]
+subgraph Reddit
 AE
 AF
 AG
@@ -258,7 +250,7 @@ Environment="OLLAMA_HOST=0.0.0.0"
     ENCRYPTION_KEY=
   ```
 
-* Run ZOllama-GPT Service:
+* Run Zollama-GPT Service:
     (see https://docs.gunicorn.org/en/stable/settings.html for config details)
 ```shell
     > gunicorn --certfile=cert.pem \

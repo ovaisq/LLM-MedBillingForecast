@@ -171,8 +171,27 @@ def analyze_post(post_id):
             return
     except langdetect.lang_detect_exception.LangDetectException as e:
         logging.warning('Skipping %s - langage detected UNKNOWN %s', post_id, e)
-    prompt = 'respond to this post title and post body: ' + text
-    asyncio.run(prompt_chat_n_store('reddit', 'post', post_id, prompt))
+    prompt = 'respond to this post title and post body: '
+
+    llm = 'deepseek-llm'
+    analyzed_obj, _ = asyncio.run(prompt_chat(llm, prompt + text, False))
+
+    # jsonb document
+    #  schema_version key added starting v2
+    analysis_document = {
+                        'schema_version' : '3',
+                        'source' : 'reddit',
+                        'category' : 'post',
+                        'reference_id' : post_id,
+                        'llm' : llm,
+                        'analysis' : analyzed_obj['analysis']
+                        }
+    analysis_data = {
+                    'timestamp': analyzed_obj['timestamp'],
+                    'shasum_512' : analyzed_obj['shasum_512'],
+                    'analysis_document' : json.dumps(analysis_document)
+                    }
+    insert_data_into_table('analysis_documents', analysis_data)
 
 @app.route('/analyze_comment', methods=['GET'])
 @jwt_required()
@@ -234,8 +253,27 @@ def analyze_comment(comment_id):
     except langdetect.lang_detect_exception.LangDetectException as e:
         logging.warning('Skipping %s - langage detected UNKNOWN %s', comment_id, e)
 
-    prompt = 'respond to this comment: ' + text
-    asyncio.run(prompt_chat_n_store('reddit', 'comment', comment_id, prompt))
+    prompt = 'respond to this comment: '
+
+    llm = 'deepseek-llm'
+    analyzed_obj, _ = asyncio.run(prompt_chat(llm, prompt + text, False))
+
+    # jsonb document
+    #  schema_version key added starting v2
+    analysis_document = {
+                        'schema_version' : '3',
+                        'source' : 'reddit',
+                        'category' : 'comment',
+                        'reference_id' : comment_id,
+                        'llm' : llm,
+                        'analysis' : analyzed_obj['analysis']
+                        }
+    analysis_data = {
+                    'timestamp': analyzed_obj['timestamp'],
+                    'shasum_512' : analyzed_obj['shasum_512'],
+                    'analysis_document' : json.dumps(analysis_document)
+                    }
+    insert_data_into_table('analysis_documents', analysis_data)
 
 @app.route('/analyze_visit_note', methods=['GET'])
 @jwt_required()
@@ -262,11 +300,26 @@ def analyze_visit_note(visit_note_id):
         source = 'healthcare'
         category = 'patient'
         patient_id = visit_note['patient_id']
+
+        # this note text is encrypted in the patient_notes table
         content = decrypt_text(visit_note['patient_note']['note'])
-        prompt = "based on doctor patient visit note, where P is patient, and D is doctor, summarize the conversation into a single paragraph prompt, include patient's age and gender if stated, keep all the pertinent details: "
-        summarized_obj = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
+
+        prompt = """based on doctor patient visit note, where P is patient, and D is doctor, \
+                  summarize the conversation into a single paragraph prompt, include patient's \
+                  age and gender if stated, keep all the pertinent details: """
+        summarized_obj, _ = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
+
+        # summary is created here, and then used for diagnostics, should be encrypted when 
+        #  before storing it in db
+        osce_note_summarized = summarized_obj['analysis'] 
         prompt = 'Diagnose this patient: '
-        analyzed_obj = asyncio.run(prompt_chat('medllama2', prompt + summarized_obj['analysis'], True))
+        # PII should always be encrypted
+        analyzed_obj, encrypt_analysis = asyncio.run(prompt_chat('medllama2', prompt + summarized_obj['analysis']))
+
+        if encrypt_analysis:
+            osce_note_summarized = encrypt_text(summarized_obj['analysis']).decode('utf-8')
+        else:
+            logging.error('URGENT: Patient Data Encryption disabled! If spotted in Production logs, notify immediately!')
 
         patient_data_obj = {
                             'schema_version' : '3',
@@ -274,7 +327,7 @@ def analyze_visit_note(visit_note_id):
                             'category' : category,
                             'patient_id' : patient_id,
                             'patient_note_id' : visit_note['patient_note_sha_512'],
-                            'osce_note_summarized' : encrypt_text(summarized_obj['analysis']).decode('utf-8'),
+                            'osce_note_summarized' : osce_note_summarized,
                             'analysis_document' : analyzed_obj['analysis']
                             }
         patient_analysis_data = {
@@ -288,7 +341,7 @@ def analyze_visit_note(visit_note_id):
         insert_data_into_table('patient_documents', patient_analysis_data) 
 
 
-async def prompt_chat(llm, content, encrypt_analysis=False):
+async def prompt_chat(llm, content, encrypt_analysis=CONFIG.get('service','PATIENT_DATA_ENCRYPTION_ENABLED')):
     """Llama Chat Prompting and response
     """
 
@@ -330,7 +383,7 @@ async def prompt_chat(llm, content, encrypt_analysis=False):
                         'analysis' : analysis
                         }
 
-        return analyzed_obj
+        return analyzed_obj, encrypt_analysis
     except (httpx.ReadError, httpx.ConnectError) as e:
         logging.error('%s',e.args[0])
         raise httpx.ConnectError('Unable to reach Ollama Server') from None
@@ -645,7 +698,7 @@ def get_and_analyze_post_endpoint():
     return jsonify({'message': 'get_and_analyze_post endpoint'})
 
 def get_and_analyze_post(post_id):
-    """If post does not exist, fetch it, then analyze iti
+    """If post does not exist, fetch it, then analyze it
     """
 
     post_ids = db_get_post_ids()
@@ -656,9 +709,40 @@ def get_and_analyze_post(post_id):
     else:
         logging.info('Post ID %s has already been analyzed', post_id)
 
+@app.route('/get_and_analyze_comment', methods=['GET'])
+@jwt_required()
+def get_and_analyze_comment_endpoint():
+    """Fetch comment from Reddit, then Chat prompt a given comment_id
+    """
+
+    comment_id = request.args.get('comment_id')
+    get_and_analyze_comment(comment_id)
+    return jsonify({'message': 'get_and_analyze_comment endpoint'})
+
+def get_comment(comment_id):
+    """Get a Reddit comment
+    """
+
+    logging.info('Getting comment id %s', comment_id)
+
+    comment = REDDIT.comment(comment_id)
+    comment_data = get_comment_details(comment)
+    insert_data_into_table('comment', comment_data)
+
+def get_and_analyze_comment(comment_id):
+    """If post does not exist, fetch it, then analyze it
+    """
+
+    comment_ids = db_get_comment_ids()
+    if not comment_ids or comment_id not in comment_ids:
+        logging.warning('Comment ID %s not found in local database', comment_id)
+        get_comment(comment_id)
+        analyze_comment(comment_id)
+    else:
+        logging.info('Post ID %s has already been analyzed', post_id)
+
 def reply_post(post_id):
     """WIP"""
-
     # filter out non answers
     sql_query = f"""select
                         analysis_document ->> 'post_id' as post_id,
