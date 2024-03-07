@@ -123,7 +123,7 @@ graph LR
 ```
 
 
-**From EMR**: 
+**From ADT Feeds and or EMR**: 
 * It collects medical conversations in the format of Objective Structured Clinical Examinations (OSCE)
 * Summarizes the medical conversation into a prompt
 * Analyzes the summarized conversation through meditron, and medllama LLMs.
