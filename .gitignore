@@ -1,4 +1,5 @@
 setup.config
+scanit.sh
 *.pem
 *.key
 __pycache__

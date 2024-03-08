@@ -10,7 +10,6 @@ async function login(page, username, password) {
   await page.type('input[name="password"]', password);
   await page.click('#login > faceplate-tabpanel > auth-flow-modal:nth-child(1) > div.w-100 > faceplate-tracker > button');
 
-  //await page.click('button[type="submit"]');
   await page.waitForNavigation();
 }
 

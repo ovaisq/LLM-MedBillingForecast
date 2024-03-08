@@ -13,7 +13,7 @@ def psql_connection():
         psql_cur = psql_conn.cursor()
         return psql_conn, psql_cur
     except psycopg2.Error as e:
-        logging.error(f"Error connecting to PostgreSQL: {e}")
+        logging.error("Error connecting to PostgreSQL: %s", e)
         raise
 
 def execute_query(sql_query):
@@ -25,7 +25,7 @@ def execute_query(sql_query):
         conn.close()
         return result
     except psycopg2.Error as e:
-        logging.error(f"{e}")
+        logging.error("%s", e)
         raise
 
 def insert_data_into_table(table_name, data):
@@ -39,7 +39,7 @@ def insert_data_into_table(table_name, data):
         cur.execute(sql_query, list(data.values()))
         conn.commit()
     except psycopg2.Error as e:
-        logging.error(f"{e}")
+        logging.error("%s", e)
         raise
 
 def get_select_query_results(sql_query):
@@ -53,7 +53,7 @@ def get_select_query_results(sql_query):
         conn.close()
         return result
     except psycopg2.Error as e:
-        logging.error(f"{e}")
+        logging.error("%s", e)
         raise
 
 def get_select_query_results2(sql_query):
@@ -67,7 +67,7 @@ def get_select_query_results2(sql_query):
         conn.close()
         return result
     except psycopg2.Error as e:
-        logging.error(f"{e}")
+        logging.error("%s", e)
         raise
 
 def get_new_data_ids(table_name, unique_column, reddit_data):
@@ -119,7 +119,7 @@ def db_get_post_ids():
                                        GROUP BY pid);"""
     post_ids = get_select_query_results(sql_query)
     if not post_ids:
-        logging.warning(f"db_get_post_ids(): no post_ids found in DB")
+        logging.warning("db_get_post_ids(): no post_ids found in DB")
         return
 
     for a_post_id in post_ids:
@@ -141,7 +141,7 @@ def db_get_comment_ids():
                                           GROUP BY pid);"""
     comment_ids = get_select_query_results(sql_query)
     if not comment_ids:
-        logging.warning(f"db_get_comment_ids(): no post_ids found in DB")
+        logging.warning("db_get_comment_ids(): no post_ids found in DB")
         return
 
     for a_comment_id in comment_ids:

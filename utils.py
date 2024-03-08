@@ -39,10 +39,10 @@ def unix_ts_int():
     return dt
 
 def ts_int_to_dt_obj():
-	"""Convert Unix time to date time object for timestamp column in PostgreSQL table"""
-	epoch_timestamp = unix_ts_int()
-	datetime_object = DT.fromtimestamp(epoch_timestamp, tz=datetime.timezone.utc)
-	return datetime_object
+    """Convert Unix time to date time object for timestamp column in PostgreSQL table"""
+    epoch_timestamp = unix_ts_int()
+    datetime_object = DT.fromtimestamp(epoch_timestamp, tz=datetime.timezone.utc)
+    return datetime_object
 
 def gen_internal_id():
     """Generate 10 number internal document id"""
@@ -74,3 +74,11 @@ def sleep_to_avoid_429(counter):
         time.sleep(sleep_for)
         counter = 0
     return counter
+
+def serialize_datetime(obj): 
+    """Credit: https://www.geeksforgeeks.org/how-to-fix-datetime-datetime-not-json-serializable-in-python/
+    """
+
+    if isinstance(obj, (datetime.datetime, datetime.datetime)): 
+        return obj.isoformat() 
+    raise TypeError("Type not serializable")

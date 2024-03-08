@@ -35,8 +35,9 @@ def get_auth_token():
     response = requests.post(url,
                              headers=LOGIN_HEADERS,
                              data=json.dumps(auth_data),
-                             verify=False)
-    return response.json()['access_token']
+                             verify=True)
+    response_json = response.json()['access_token']
+    return response_json
 
 def do_get(end_point):
     url = CONFIG.get('service','ENDPOINT_URL') + end_point
@@ -44,7 +45,9 @@ def do_get(end_point):
     headers = {
                'Authorization' : f'Bearer {auth_token}'
               }
-    response = requests.get(url, headers=headers, verify=False)
+    response = requests.get(url, headers=headers, verify=True)
+    response_json = response.json()['access_token']
+    return response_json
 
 # Tasks setup
 def get_authors_comments():

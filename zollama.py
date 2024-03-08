@@ -60,6 +60,7 @@ import langdetect
 from langdetect import detect
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token
+from flask_wtf import CSRFProtect
 from prawcore import exceptions
 from ollama import AsyncClient
 
@@ -76,12 +77,17 @@ from encryption import encrypt_text, decrypt_text
 from reddit_api import create_reddit_instance
 from utils import unix_ts_str, sleep_to_avoid_429, sanitize_string, ts_int_to_dt_obj
 from utils import gen_internal_id
+from utils import serialize_datetime
 
 app = Flask('ZOllama-GPT')
 
 # constants
-NUM_ELEMENTS_CHUNK = 25
 CONFIG = get_config()
+
+#app.secret_key = CONFIG.get('service','CSRF_PROTECTION_KEY').encode('utf-8')
+#csrf = CSRFProtect(app)
+
+NUM_ELEMENTS_CHUNK = 25
 LLMS = CONFIG.get('service','LLMS').split(',')
 
 # Flask app config
@@ -288,18 +294,19 @@ def analyze_visit_note_endpoint():
 def analyze_visit_note(visit_note_id):
 
     sql_query = f"""SELECT 
-                        patient_id, patient_note_sha_512, patient_note 
+                        patient_id, patient_note_id, patient_note 
                    FROM 
                         patient_notes
-                   WHERE patient_note_sha_512 = '{visit_note_id}';
+                   WHERE patient_note_id = '{visit_note_id}';
                 """
 
-    visit_notes = get_select_query_results2(sql_query) 
+    visit_notes = get_select_query_results2(sql_query)
 
     for visit_note in visit_notes:
         source = 'healthcare'
         category = 'patient'
         patient_id = visit_note['patient_id']
+        patient_note_id = visit_note['patient_note_id']
 
         # this note text is encrypted in the patient_notes table
         content = decrypt_text(visit_note['patient_note']['note'])
@@ -314,7 +321,11 @@ def analyze_visit_note(visit_note_id):
         osce_note_summarized = summarized_obj['analysis'] 
         prompt = 'Diagnose this patient: '
         # PII should always be encrypted
-        analyzed_obj, encrypt_analysis = asyncio.run(prompt_chat('medllama2', prompt + summarized_obj['analysis']))
+        llm = 'medllama2'
+        analyzed_obj, encrypt_analysis = asyncio.run(prompt_chat(llm, prompt + summarized_obj['analysis']))
+        recommended_diagnosis = analyzed_obj['analysis']
+        patient_document_id = analyzed_obj['shasum_512']
+        get_store_icd_cpt_codes(patient_id, patient_document_id, llm, recommended_diagnosis)
 
         if encrypt_analysis:
             osce_note_summarized = encrypt_text(summarized_obj['analysis']).decode('utf-8')
@@ -323,31 +334,61 @@ def analyze_visit_note(visit_note_id):
 
         patient_data_obj = {
                             'schema_version' : '3',
+                            'llm' : llm,
                             'source' : source,
                             'category' : category,
                             'patient_id' : patient_id,
-                            'patient_note_id' : visit_note['patient_note_sha_512'],
+                            'patient_note_id' : patient_note_id,
                             'osce_note_summarized' : osce_note_summarized,
-                            'analysis_document' : analyzed_obj['analysis']
+                            'analysis_document' : recommended_diagnosis 
                             }
         patient_analysis_data = {
                                      'timestamp' : analyzed_obj['timestamp'],
-                                     'patient_analysis_sha_512' : analyzed_obj['shasum_512'],
+                                     'patient_document_id' : patient_document_id,
                                      'patient_id' : patient_id,
-                                     'patient_note_id' : visit_note['patient_note_sha_512'],
+                                     'patient_note_id' : patient_note_id,
                                      'analysis_document' : json.dumps(patient_data_obj)
                                     }
-
         insert_data_into_table('patient_documents', patient_analysis_data) 
 
+def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_content):
+    """Get icd and cpt codes for the diagnosis and store the two
+        as JSON in the table
+    """
 
-async def prompt_chat(llm, content, encrypt_analysis=CONFIG.get('service','PATIENT_DATA_ENCRYPTION_ENABLED')):
+    icd_prompt = 'List relevant ICD codes for the diagnosis: '
+    cpt_prompt = 'List relevant CPT codes for the diagnosis: '
+
+    icd_obj, encrypt_analysis = asyncio.run(prompt_chat(llm, icd_prompt + analyzed_content, False))
+
+    cpt_obj, encrypt_analysis = asyncio.run(prompt_chat(llm, cpt_prompt + analyzed_content, False))
+
+    codes_document = {
+                      'icd' : {
+                               'timestamp' : serialize_datetime(icd_obj['timestamp']),
+                               'codes' : icd_obj['analysis']
+                              },
+                      'cpt' : { 
+                               'timestamp' : serialize_datetime(cpt_obj['timestamp']),
+                               'codes' : cpt_obj['analysis']
+                              }
+                     }
+    codes_data = {
+                  'timestamp' : serialize_datetime(ts_int_to_dt_obj()),
+                  'patient_id' : patient_id,
+                  'patient_document_id' : patient_document_id,
+                  'codes_document' : json.dumps(codes_document)
+                 }
+    insert_data_into_table('patient_codes', codes_data) 
+
+
+async def prompt_chat(llm, content, encrypt_analysis=CONFIG.getboolean('service','PATIENT_DATA_ENCRYPTION_ENABLED')):
     """Llama Chat Prompting and response
     """
 
     dt = ts_int_to_dt_obj()
     client = AsyncClient(host=CONFIG.get('service','OLLAMA_API_URL'))
-    logging.info('Running %s for %s', llm)
+    logging.info('Running for %s', llm)
     try:
         response = await client.chat(
                                         model=llm,
@@ -374,6 +415,7 @@ async def prompt_chat(llm, content, encrypt_analysis=CONFIG.get('service','PATIE
 
         # see encryption.py module
         # encrypt text *** make sure that encryption key file is secure! ***
+
         if encrypt_analysis:
             analysis = encrypt_text(analysis).decode('utf-8')
 
@@ -759,7 +801,6 @@ def reply_post(post_id):
     if analyzed_data:
         a_post = REDDIT.submission('1b0yadp')
         a_post.reply()
-        pass
 
 if __name__ == "__main__":
 
