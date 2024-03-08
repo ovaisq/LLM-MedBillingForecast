@@ -89,6 +89,7 @@ CONFIG = get_config()
 
 NUM_ELEMENTS_CHUNK = 25
 LLMS = CONFIG.get('service','LLMS').split(',')
+MEDLLMS = CONFIG.get('service','MEDLLMS').split(',')
 
 # Flask app config
 app.config.update(
@@ -179,25 +180,25 @@ def analyze_post(post_id):
         logging.warning('Skipping %s - langage detected UNKNOWN %s', post_id, e)
     prompt = 'respond to this post title and post body: '
 
-    llm = 'deepseek-llm'
-    analyzed_obj, _ = asyncio.run(prompt_chat(llm, prompt + text, False))
+    for llm in LLMS:
+        analyzed_obj, _ = asyncio.run(prompt_chat(llm, prompt + text, False))
 
-    # jsonb document
-    #  schema_version key added starting v2
-    analysis_document = {
-                        'schema_version' : '3',
-                        'source' : 'reddit',
-                        'category' : 'post',
-                        'reference_id' : post_id,
-                        'llm' : llm,
-                        'analysis' : analyzed_obj['analysis']
+        # jsonb document
+        #  schema_version key added starting v2
+        analysis_document = {
+                            'schema_version' : '3',
+                            'source' : 'reddit',
+                            'category' : 'post',
+                            'reference_id' : post_id,
+                            'llm' : llm,
+                            'analysis' : analyzed_obj['analysis']
+                            }
+        analysis_data = {
+                        'timestamp': analyzed_obj['timestamp'],
+                        'shasum_512' : analyzed_obj['shasum_512'],
+                        'analysis_document' : json.dumps(analysis_document)
                         }
-    analysis_data = {
-                    'timestamp': analyzed_obj['timestamp'],
-                    'shasum_512' : analyzed_obj['shasum_512'],
-                    'analysis_document' : json.dumps(analysis_document)
-                    }
-    insert_data_into_table('analysis_documents', analysis_data)
+        insert_data_into_table('analysis_documents', analysis_data)
 
 @app.route('/analyze_comment', methods=['GET'])
 @jwt_required()
@@ -261,25 +262,25 @@ def analyze_comment(comment_id):
 
     prompt = 'respond to this comment: '
 
-    llm = 'deepseek-llm'
-    analyzed_obj, _ = asyncio.run(prompt_chat(llm, prompt + text, False))
+    for llm in LLMS:
+        analyzed_obj, _ = asyncio.run(prompt_chat(llm, prompt + text, False))
 
-    # jsonb document
-    #  schema_version key added starting v2
-    analysis_document = {
-                        'schema_version' : '3',
-                        'source' : 'reddit',
-                        'category' : 'comment',
-                        'reference_id' : comment_id,
-                        'llm' : llm,
-                        'analysis' : analyzed_obj['analysis']
+        # jsonb document
+        #  schema_version key added starting v2
+        analysis_document = {
+                            'schema_version' : '3',
+                            'source' : 'reddit',
+                            'category' : 'comment',
+                            'reference_id' : comment_id,
+                            'llm' : llm,
+                            'analysis' : analyzed_obj['analysis']
+                            }
+        analysis_data = {
+                        'timestamp': analyzed_obj['timestamp'],
+                        'shasum_512' : analyzed_obj['shasum_512'],
+                        'analysis_document' : json.dumps(analysis_document)
                         }
-    analysis_data = {
-                    'timestamp': analyzed_obj['timestamp'],
-                    'shasum_512' : analyzed_obj['shasum_512'],
-                    'analysis_document' : json.dumps(analysis_document)
-                    }
-    insert_data_into_table('analysis_documents', analysis_data)
+        insert_data_into_table('analysis_documents', analysis_data)
 
 @app.route('/analyze_visit_note', methods=['GET'])
 @jwt_required()
@@ -320,36 +321,39 @@ def analyze_visit_note(visit_note_id):
         #  before storing it in db
         osce_note_summarized = summarized_obj['analysis'] 
         prompt = 'Diagnose this patient: '
+
         # PII should always be encrypted
-        llm = 'medllama2'
-        analyzed_obj, encrypt_analysis = asyncio.run(prompt_chat(llm, prompt + summarized_obj['analysis']))
-        recommended_diagnosis = analyzed_obj['analysis']
-        patient_document_id = analyzed_obj['shasum_512']
-        get_store_icd_cpt_codes(patient_id, patient_document_id, llm, recommended_diagnosis)
+        for llm in MEDLLMS:
+            analyzed_obj, encrypt_analysis = asyncio.run(prompt_chat(llm, prompt + summarized_obj['analysis']))
+            # decrypt for ICD/DPT codes processing only. this happens and should ONLY happen here
+            recommended_diagnosis = decrypt_text(analyzed_obj['analysis'])
+            patient_document_id = analyzed_obj['shasum_512']
+            get_store_icd_cpt_codes(patient_id, patient_document_id, llm, recommended_diagnosis)
+            recommended_diagnosis = analyzed_obj['analysis'] #originally encrypted
 
-        if encrypt_analysis:
-            osce_note_summarized = encrypt_text(summarized_obj['analysis']).decode('utf-8')
-        else:
-            logging.error('URGENT: Patient Data Encryption disabled! If spotted in Production logs, notify immediately!')
+            if encrypt_analysis:
+                osce_note_summarized = encrypt_text(summarized_obj['analysis']).decode('utf-8')
+            else:
+                logging.error('URGENT: Patient Data Encryption disabled! If spotted in Production logs, notify immediately!')
 
-        patient_data_obj = {
-                            'schema_version' : '3',
-                            'llm' : llm,
-                            'source' : source,
-                            'category' : category,
-                            'patient_id' : patient_id,
-                            'patient_note_id' : patient_note_id,
-                            'osce_note_summarized' : osce_note_summarized,
-                            'analysis_document' : recommended_diagnosis 
-                            }
-        patient_analysis_data = {
-                                     'timestamp' : analyzed_obj['timestamp'],
-                                     'patient_document_id' : patient_document_id,
-                                     'patient_id' : patient_id,
-                                     'patient_note_id' : patient_note_id,
-                                     'analysis_document' : json.dumps(patient_data_obj)
-                                    }
-        insert_data_into_table('patient_documents', patient_analysis_data) 
+            patient_data_obj = {
+                                'schema_version' : '3',
+                                'llm' : llm,
+                                'source' : source,
+                                'category' : category,
+                                'patient_id' : patient_id,
+                                'patient_note_id' : patient_note_id,
+                                'osce_note_summarized' : osce_note_summarized,
+                                'analysis_document' : recommended_diagnosis 
+                                }
+            patient_analysis_data = {
+                                        'timestamp' : analyzed_obj['timestamp'],
+                                        'patient_document_id' : patient_document_id,
+                                        'patient_id' : patient_id,
+                                        'patient_note_id' : patient_note_id,
+                                        'analysis_document' : json.dumps(patient_data_obj)
+                                        }
+            insert_data_into_table('patient_documents', patient_analysis_data) 
 
 def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_content):
     """Get icd and cpt codes for the diagnosis and store the two
