@@ -443,7 +443,8 @@ async def prompt_chat(llm,
                                         messages=[
                                                 {
                                                     'role': 'user',
-                                                    'content': content
+                                                    'content': content,
+                                                    'keep_alive' : 0
                                                 },
                                                 ],
                                         options = {
