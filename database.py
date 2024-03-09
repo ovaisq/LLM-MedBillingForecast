@@ -34,6 +34,9 @@ def insert_data_into_table(table_name, data):
     try:
         placeholders = ', '.join(['%s'] * len(data))
         columns = ', '.join(data.keys())
+        # Since the table keys that matter are set to UNIQUE value,
+        #   I find the ON CONFLICT DO NOTHING more effecient than
+        #   doing a lookup before INSERT
         sql_query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders}) \
                      ON CONFLICT DO NOTHING;"
         cur.execute(sql_query, list(data.values()))
