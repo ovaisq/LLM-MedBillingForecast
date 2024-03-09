@@ -2,13 +2,13 @@
 # ©2024, Ovais Quraishi
 
 import configparser
-import pathlib
+from pathlib import Path
 
 CONFIG_FILE = 'setup.config'
 
 def read_config(file_path):
     """Read setup config file"""
-    if pathlib.Path(file_path).exists():
+    if Path(str(Path(file_path).resolve())).exists():
         config_obj = configparser.RawConfigParser()
         config_obj.read(file_path)
         return config_obj
