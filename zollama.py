@@ -60,7 +60,6 @@ import langdetect
 from langdetect import detect
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token
-from flask_wtf import CSRFProtect
 from prawcore import exceptions
 from ollama import AsyncClient
 
@@ -76,16 +75,12 @@ from database import db_get_comment_ids
 from encryption import encrypt_text, decrypt_text
 from reddit_api import create_reddit_instance
 from utils import unix_ts_str, sleep_to_avoid_429, sanitize_string, ts_int_to_dt_obj
-from utils import gen_internal_id
 from utils import serialize_datetime
 
 app = Flask('ZOllama-GPT')
 
 # constants
 CONFIG = get_config()
-
-#app.secret_key = CONFIG.get('service','CSRF_PROTECTION_KEY').encode('utf-8')
-#csrf = CSRFProtect(app)
 
 NUM_ELEMENTS_CHUNK = 25
 LLMS = CONFIG.get('service','LLMS').split(',')
@@ -282,10 +277,32 @@ def analyze_comment(comment_id):
                         }
         insert_data_into_table('analysis_documents', analysis_data)
 
+@app.route('/analyze_visit_notes', methods=['GET'])
+@jwt_required()
+def analyze_visit_notes_endpoint():
+    """Analyze all OSCE format Visit Notes that exist in database
+    """
+
+    analyze_visit_notes()
+    return jsonify({'message': 'analyze_visit_notes endpoint'})
+
+def analyze_visit_notes():
+    """Analyze all visit notes in the db
+    """
+    sql_query = """SELECT
+                        patient_note_id
+                   FROM 
+                        patient_notes;
+                """
+
+    all_visit_notes = get_select_query_results2(sql_query)
+    for a_visit_note_id in all_visit_notes:
+        analyze_visit_note(a_visit_note_id)
+
 @app.route('/analyze_visit_note', methods=['GET'])
 @jwt_required()
 def analyze_visit_note_endpoint():
-    """Analyze Visit OSCE format Visit Note
+    """Analyze OSCE format Visit Note that exists in the database
     """
 
     visit_note_id = request.args.get('visit_note_id')
@@ -293,8 +310,10 @@ def analyze_visit_note_endpoint():
     return jsonify({'message': 'analyze_visit_note endpoint'})
 
 def analyze_visit_note(visit_note_id):
+    """Analyze a specific visit note that exists in the database
+    """
 
-    sql_query = f"""SELECT 
+    sql_query = f"""SELECT
                         patient_id, patient_note_id, patient_note 
                    FROM 
                         patient_notes
@@ -304,8 +323,6 @@ def analyze_visit_note(visit_note_id):
     visit_notes = get_select_query_results2(sql_query)
 
     for visit_note in visit_notes:
-        source = 'healthcare'
-        category = 'patient'
         patient_id = visit_note['patient_id']
         patient_note_id = visit_note['patient_note_id']
 
@@ -317,14 +334,20 @@ def analyze_visit_note(visit_note_id):
                   age and gender if stated, keep all the pertinent details: """
         summarized_obj, _ = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
 
-        # summary is created here, and then used for diagnostics, should be encrypted when 
+        # summary is created here, and then used for diagnostics, should be encrypted when
         #  before storing it in db
-        osce_note_summarized = summarized_obj['analysis'] 
+        osce_note_summarized = summarized_obj['analysis']
         prompt = 'Diagnose this patient: '
 
         # PII should always be encrypted
         for llm in MEDLLMS:
-            analyzed_obj, encrypt_analysis = asyncio.run(prompt_chat(llm, prompt + summarized_obj['analysis']))
+            analyzed_obj, encrypt_analysis = asyncio.run(
+                                                         prompt_chat(
+                                                                     llm,
+                                                                     prompt +
+                                                                     summarized_obj['analysis']
+                                                                    )
+                                                        )
             # decrypt for ICD/DPT codes processing only. this happens and should ONLY happen here
             recommended_diagnosis = decrypt_text(analyzed_obj['analysis'])
             patient_document_id = analyzed_obj['shasum_512']
@@ -334,13 +357,14 @@ def analyze_visit_note(visit_note_id):
             if encrypt_analysis:
                 osce_note_summarized = encrypt_text(summarized_obj['analysis']).decode('utf-8')
             else:
-                logging.error('URGENT: Patient Data Encryption disabled! If spotted in Production logs, notify immediately!')
+                logging.error('URGENT: Patient Data Encryption disabled! \
+                              If spotted in Production logs, notify immediately!')
 
             patient_data_obj = {
                                 'schema_version' : '3',
                                 'llm' : llm,
-                                'source' : source,
-                                'category' : category,
+                                'source' : 'healthcare',
+                                'category' : 'patient',
                                 'patient_id' : patient_id,
                                 'patient_note_id' : patient_note_id,
                                 'osce_note_summarized' : osce_note_summarized,
@@ -353,7 +377,7 @@ def analyze_visit_note(visit_note_id):
                                         'patient_note_id' : patient_note_id,
                                         'analysis_document' : json.dumps(patient_data_obj)
                                         }
-            insert_data_into_table('patient_documents', patient_analysis_data) 
+            insert_data_into_table('patient_documents', patient_analysis_data)
 
 def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_content):
     """Get icd and cpt codes for the diagnosis and store the two
@@ -363,9 +387,9 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
     icd_prompt = 'List relevant ICD codes for the diagnosis: '
     cpt_prompt = 'List relevant CPT codes for the diagnosis: '
 
-    icd_obj, encrypt_analysis = asyncio.run(prompt_chat(llm, icd_prompt + analyzed_content, False))
+    icd_obj, _ = asyncio.run(prompt_chat(llm, icd_prompt + analyzed_content, False))
 
-    cpt_obj, encrypt_analysis = asyncio.run(prompt_chat(llm, cpt_prompt + analyzed_content, False))
+    cpt_obj, _ = asyncio.run(prompt_chat(llm, cpt_prompt + analyzed_content, False))
 
     codes_document = {
                       'icd' : {
@@ -383,10 +407,13 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                   'patient_document_id' : patient_document_id,
                   'codes_document' : json.dumps(codes_document)
                  }
-    insert_data_into_table('patient_codes', codes_data) 
+    insert_data_into_table('patient_codes', codes_data)
 
-
-async def prompt_chat(llm, content, encrypt_analysis=CONFIG.getboolean('service','PATIENT_DATA_ENCRYPTION_ENABLED')):
+async def prompt_chat(llm,
+                      content,
+                      encrypt_analysis=CONFIG.getboolean('service',
+                                                         'PATIENT_DATA_ENCRYPTION_ENABLED')
+                     ):
     """Llama Chat Prompting and response
     """
 
@@ -785,7 +812,7 @@ def get_and_analyze_comment(comment_id):
         get_comment(comment_id)
         analyze_comment(comment_id)
     else:
-        logging.info('Post ID %s has already been analyzed', post_id)
+        logging.info('Comment ID %s has already been analyzed', comment_id)
 
 def reply_post(post_id):
     """WIP"""
