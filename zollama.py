@@ -412,9 +412,9 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                                'timestamp' : serialize_datetime(cpt_obj['timestamp']),
                                'codes' : cpt_obj['analysis']
                               },
-                      'prescriptions' : { 
-                                         'timestamp' : serialize_datetime(cpt_obj['timestamp']),
-                                         'prescriptions' : cpt_obj['analysis']
+                      'prescription' : { 
+                                         'timestamp' : serialize_datetime(prescription_obj['timestamp']),
+                                         'prescriptions' : prescription_obj['analysis']
                                         }
                      }
     codes_data = {
