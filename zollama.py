@@ -297,7 +297,7 @@ def analyze_visit_notes():
 
     all_visit_notes = get_select_query_results2(sql_query)
     for a_visit_note_id in all_visit_notes:
-        analyze_visit_note(a_visit_note_id)
+        analyze_visit_note(a_visit_note_id['patient_note_id'])
 
 @app.route('/analyze_visit_note', methods=['GET'])
 @jwt_required()
@@ -384,12 +384,24 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
         as JSON in the table
     """
 
-    icd_prompt = 'List relevant ICD codes for the diagnosis: '
-    cpt_prompt = 'List relevant CPT codes for the diagnosis: '
+    if llm != 'meditron':
+        icd_prompt = 'List relevant ICD codes for the diagnosis: '
+        cpt_prompt = 'List relevant CPT codes for the diagnosis: '
+        prescription_prompt = 'What medication would be prescribed for the diagnosis: '
 
+    if llm == 'meditron':
+        icd_prompt = 'What are the relevant ICD codes for the diagnosis: '
+        cpt_prompt = 'What are the relevant CPT codes for the diagnosis: '
+        prescription_prompt = 'What medication would be prescribed for the diagnosis: '
+
+    # do not encrypt
     icd_obj, _ = asyncio.run(prompt_chat(llm, icd_prompt + analyzed_content, False))
 
+    # do not encrypt
     cpt_obj, _ = asyncio.run(prompt_chat(llm, cpt_prompt + analyzed_content, False))
+
+    # do not encrypt
+    prescription_obj, _ = asyncio.run(prompt_chat(llm, prescription_prompt + analyzed_content, False))
 
     codes_document = {
                       'icd' : {
@@ -399,7 +411,11 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                       'cpt' : { 
                                'timestamp' : serialize_datetime(cpt_obj['timestamp']),
                                'codes' : cpt_obj['analysis']
-                              }
+                              },
+                      'prescriptions' : { 
+                                         'timestamp' : serialize_datetime(cpt_obj['timestamp']),
+                                         'prescriptions' : cpt_obj['analysis']
+                                        }
                      }
     codes_data = {
                   'timestamp' : serialize_datetime(ts_int_to_dt_obj()),
