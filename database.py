@@ -39,7 +39,8 @@ def insert_data_into_table(table_name, data):
         #   doing a lookup before INSERT. This way original content
         #   is preserved by default. In case of updating existing
         #   data, one can write a method to safely update data
-        #   while also preserving original data. TBD
+        #   while also preserving original data. For example use
+        #   ON CONFLICT DO UPDATE. For now this'd do.
         sql_query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders}) \
                      ON CONFLICT DO NOTHING;"
         cur.execute(sql_query, list(data.values()))
