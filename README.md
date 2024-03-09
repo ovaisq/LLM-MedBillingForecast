@@ -82,6 +82,8 @@ subgraph ICD["ICD Codes"]
 end
 subgraph CPT["CPT Codes"]
 end
+subgraph PRESCRIPTION["Prescriptions"]
+end
 end
 end
 end
