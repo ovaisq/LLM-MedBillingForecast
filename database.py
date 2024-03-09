@@ -36,7 +36,10 @@ def insert_data_into_table(table_name, data):
         columns = ', '.join(data.keys())
         # Since the table keys that matter are set to UNIQUE value,
         #   I find the ON CONFLICT DO NOTHING more effecient than
-        #   doing a lookup before INSERT
+        #   doing a lookup before INSERT. This way original content
+        #   is preserved by default. In case of updating existing
+        #   data, one can write a method to safely update data
+        #   while also preserving original data. TBD
         sql_query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders}) \
                      ON CONFLICT DO NOTHING;"
         cur.execute(sql_query, list(data.values()))
