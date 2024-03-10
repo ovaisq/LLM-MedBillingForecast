@@ -385,12 +385,12 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
     if llm != 'meditron':
         icd_prompt = 'What are the ICD codes for this diagnosis? '
         cpt_prompt = 'What are the CPT codes for this diagnosis? '
-        prescription_prompt = 'What medication would be prescribed for the diagnosis? '
+        prescription_prompt = 'What medication to prescribe for the diagnosis? '
 
     if llm == 'meditron':
         icd_prompt = 'What are the ICD codes for this diagnosis? '
         cpt_prompt = 'What are the CPT codes for this diagnosis? '
-        prescription_prompt = 'What medication would be prescribed for the diagnosis? '
+        prescription_prompt = 'What medication to prescribe for the diagnosis? '
 
     # do not encrypt
     icd_obj, _ = asyncio.run(prompt_chat(llm, icd_prompt + analyzed_content, False))
