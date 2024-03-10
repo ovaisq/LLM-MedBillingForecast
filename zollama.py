@@ -329,9 +329,7 @@ def analyze_visit_note(visit_note_id):
         # this note text is encrypted in the patient_notes table
         content = decrypt_text(visit_note['patient_note']['note'])
 
-        prompt = """based on doctor patient visit note, where P is patient, and D is doctor, \
-                  summarize the conversation into a single paragraph prompt, include patient's \
-                  age and gender if stated, keep all the pertinent details: """
+        prompt = "What Disease does this Patient Have? P is patient, D is Doctor"
         summarized_obj, _ = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
 
         # summary is created here, and then used for diagnostics, should be encrypted when
@@ -385,14 +383,14 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
     """
 
     if llm != 'meditron':
-        icd_prompt = 'List relevant ICD codes for the diagnosis: '
-        cpt_prompt = 'List relevant CPT codes for the diagnosis: '
-        prescription_prompt = 'What medication would be prescribed for the diagnosis: '
+        icd_prompt = 'What are the ICD codes for this diagnosis? '
+        cpt_prompt = 'What are the CPT codes for this diagnosis? '
+        prescription_prompt = 'What medication would be prescribed for the diagnosis? '
 
     if llm == 'meditron':
-        icd_prompt = 'What are the relevant ICD codes for the diagnosis: '
-        cpt_prompt = 'What are the relevant CPT codes for the diagnosis: '
-        prescription_prompt = 'What medication would be prescribed for the diagnosis: '
+        icd_prompt = 'What are the ICD codes for this diagnosis? '
+        cpt_prompt = 'What are the CPT codes for this diagnosis? '
+        prescription_prompt = 'What medication would be prescribed for the diagnosis? '
 
     # do not encrypt
     icd_obj, _ = asyncio.run(prompt_chat(llm, icd_prompt + analyzed_content, False))
