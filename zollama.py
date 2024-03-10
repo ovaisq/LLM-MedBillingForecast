@@ -386,6 +386,7 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
         icd_prompt = 'What are the ICD codes for this diagnosis? '
         cpt_prompt = 'What are the CPT codes for this diagnosis? '
         prescription_prompt = 'What medication to prescribe for the diagnosis? '
+        prescription_cpt_prompt = 'What are the CPT codes for these prescriptions? '
 
     if llm == 'meditron':
         icd_prompt = 'What are the ICD codes for this diagnosis? '
@@ -401,6 +402,9 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
     # do not encrypt
     prescription_obj, _ = asyncio.run(prompt_chat(llm, prescription_prompt + analyzed_content, False))
 
+    # do not encrypt
+    prescription_cpt_obj, _ = asyncio.run(prompt_chat(llm, prescription_cpt_prompt + prescription_obj['analysis'], False))
+
     codes_document = {
                       'icd' : {
                                'timestamp' : serialize_datetime(icd_obj['timestamp']),
@@ -413,7 +417,12 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                       'prescription' : { 
                                          'timestamp' : serialize_datetime(prescription_obj['timestamp']),
                                          'prescriptions' : prescription_obj['analysis']
-                                        }
+                                        },
+                      'prescription_cpt' : {
+                                            'timestamp' : serialize_datetime(prescription_cpt_obj['timestamp']),
+                                            'prescription_cpt' : prescription_cpt_obj['analysis']
+                                            
+                                           }
                      }
     codes_data = {
                   'timestamp' : serialize_datetime(ts_int_to_dt_obj()),
