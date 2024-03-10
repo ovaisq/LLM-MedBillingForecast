@@ -28,7 +28,7 @@ def icd_10_code_details(icd_10_code):
                             'code' : icd_10_code,
                             'full_data' : full_details.replace(':\n',':'),
                             'billable' : icdbilling.find(icd_10_code).billable
-                        }
+                          }
 
         return icd_details_obj
     except ValueError as e:
