@@ -1,5 +1,5 @@
 setup.config
-scanit.sh
+sonar_it.sh
 *.pem
 *.key
 __pycache__
