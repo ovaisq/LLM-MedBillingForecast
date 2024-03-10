@@ -65,6 +65,9 @@ from ollama import AsyncClient
 
 # Import required local modules
 from config import get_config
+from clincodeutils import extract_icd10_codes
+from clincodeutils import extract_cpt_codes
+from clincodeutils import icd_10_code_details_list
 from database import db_get_authors
 from database import insert_data_into_table
 from database import get_new_data_ids
@@ -408,11 +411,13 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
     codes_document = {
                       'icd' : {
                                'timestamp' : serialize_datetime(icd_obj['timestamp']),
-                               'codes' : icd_obj['analysis']
+                               'codes' : extract_icd10_codes(icd_obj['analysis']),
+                               'details' : icd_10_code_details_list(extract_icd10_codes(icd_obj['analysis']))
                               },
                       'cpt' : { 
                                'timestamp' : serialize_datetime(cpt_obj['timestamp']),
-                               'codes' : cpt_obj['analysis']
+                               'codes' : extract_cpt_codes(cpt_obj['analysis']),
+                               'details' : cpt_obj['analysis']
                               },
                       'prescription' : { 
                                          'timestamp' : serialize_datetime(prescription_obj['timestamp']),
@@ -420,8 +425,7 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                                         },
                       'prescription_cpt' : {
                                             'timestamp' : serialize_datetime(prescription_cpt_obj['timestamp']),
-                                            'prescription_cpt' : prescription_cpt_obj['analysis']
-                                            
+                                            'codes' : extract_cpt_codes(prescription_cpt_obj['analysis'])
                                            }
                      }
     codes_data = {
