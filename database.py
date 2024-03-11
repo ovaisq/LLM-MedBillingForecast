@@ -63,7 +63,7 @@ def get_select_query_results(sql_query):
         logging.error("%s", e)
         raise
 
-def get_select_query_results2(sql_query):
+def get_select_query_result_dicts(sql_query):
     """Execute a query, return all rows for the query as list of dictionaries"""
 
     conn, cur = psql_connection()
