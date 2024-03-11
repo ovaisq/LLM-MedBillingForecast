@@ -6,7 +6,7 @@
 %%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'20px',"fontFamily": "Trebuchet MS"}}}%%
 flowchart TD
     classDef subgraph_padding fill:none,stroke:none
-    Z(("`**Zollama
+    Z(("`**ZOllama
     Service API**`"))
     A(gemma)
     AZA(llama2)
