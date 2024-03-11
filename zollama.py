@@ -452,16 +452,16 @@ async def prompt_chat(llm,
                                         model=llm,
                                         stream=False,
                                         messages=[
-                                                {
-                                                    'role': 'user',
-                                                    'content': content,
-                                                    'keep_alive' : 0
-                                                },
-                                                ],
+                                                  {
+                                                   'role': 'user',
+                                                   'content': content,
+                                                   'keep_alive' : 0
+                                                  },
+                                                 ],
                                         options = {
                                                     'temperature' : 0
-                                                }
-                                        )
+                                                  }
+                                    )
 
         # chatgpt analysis
         analysis = response['message']['content']
