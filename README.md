@@ -116,7 +116,7 @@ graph LR
     sub["/analyze_visit_note"] --> sub2
     sub["/analyze_visit_notes"] --> sub3
     sub["CLIENT"] --> sub0
-    sub0["GET: Login]
+    sub0["GET: Login"]
     sub1["POST: Generate JWT"]
     sub2["GET: Analyze Visit OSCE format Visit Note"]
     sub3["GET: Analyze all OSCE format Visit Notes that exist in database"]
