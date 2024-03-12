@@ -96,7 +96,13 @@ flowchart TD
                         end
                     end
                 end
+                subgraph RDBMS
+                    subgraph blank11[ ]
+                    PID["Patient ID"]
+                    end
+                end
             end
+
             
         end
     end
@@ -111,6 +117,7 @@ flowchart TD
     class blank9 subgraph_padding
     class blank9 subgraph_padding
     class blank10 subgraph_padding
+    class blank11 subgraph_padding
 ```
 
 #### API Overview
