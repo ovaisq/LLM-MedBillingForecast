@@ -266,11 +266,19 @@ Environment="OLLAMA_HOST=0.0.0.0"
                --threads 4 \
                --reload
 ```
+
+**Seed the DB with Anonymized Read World OSCE Notes**
+> ./seed_data.py
+ 
+**Script Output**
+```shell
+MedData/Clean Transcripts/RES0181.txt
+MedData/Clean Transcripts/RES0195.txt
+MedData/Clean Transcripts/GAS0001.txt
+```
 * Customize it to your hearts content!
 
-
 * **LICENSE**: The 3-Clause BSD License - license.txt
-
 
 * **TODO**:
     - Add Swagger Docs
@@ -282,7 +290,7 @@ Environment="OLLAMA_HOST=0.0.0.0"
         - break down longer list of items into list of lists with small
             chunks
 
-#### Example
+#### How-to use the API examples
 * These examples assume that environment variable **API_KEY** is using a valid API_KEY
 
 
@@ -290,14 +298,18 @@ Environment="OLLAMA_HOST=0.0.0.0"
 ```shell
 > export api_key=<api_key>
 >
-> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${foo}'"}' https://127.0.0.1:5001/login | jq -r .access_token) && time curl -sk -X GET -H "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_visit_note?visit_note_id=<visit note id>'
+> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${foo}'"}' \
+https://127.0.0.1:5001/login | jq -r .access_token) \
+&& curl -sk -X GET -H "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_visit_note?visit_note_id=<visit note id>'
 ```
 
 **Chat Prompt ALL patient visit notes that are currently stored in  database**
 ```shell
 > export api_key=<api_key>
 >
-> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${foo}'"}' https://127.0.0.1:5001/login | jq -r .access_token) && time curl -sk -X GET -H "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_visit_notes'
+> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${foo}'"}' \
+https://127.0.0.1:5001/login | jq -r .access_token) \
+&& curl -sk -X GET -H "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_visit_notes'
 ```
 
 
