@@ -149,10 +149,10 @@ graph LR
    - Stores all information as various JSON documents in PostgreSQL.
  * Encrypts the analyzed text and incorporates it into a searchable JSON document in PostgreSQL.
   
-** Deployed as WSGI **  
+**Deployed as WSGI**  
 *  Uses Gunicorn WSGI
 
-#### How-to Run this
+#### How-to Run
 * Install Python Modules:
     > pip3 install -r requirements.txt
 
@@ -172,6 +172,7 @@ graph LR
 * https://github.com/ollama/ollama/blob/main/docs/linux.md
 
 * Sample Debian Service config file: /etc/systemd/system/ollama.service
+Add **OLLAMA_HOST** environment variable to allow remote access
 ```shell
 [Service]
 Environment="OLLAMA_HOST=0.0.0.0"
@@ -276,8 +277,6 @@ Environment="OLLAMA_HOST=0.0.0.0"
     - Add long running task queue
         - Queue: task_id, task_status, end_point
     - Revisit Endpoint logic add robust error handling
-    - Add scheduler app - to schedule some of these events
-        - scheduler checks whether or not a similar tasks exists
     - Add logic to handle list of lists with NUM_ELEMENTS_CHUNK elements
         - retry after 429
         - break down longer list of items into list of lists with small
@@ -301,12 +300,6 @@ Environment="OLLAMA_HOST=0.0.0.0"
 > export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${foo}'"}' https://127.0.0.1:5001/login | jq -r .access_token) && time curl -sk -X GET -H "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_visit_notes'
 ```
 
-### General Workflow
-```mermaid
-flowchart TD
-    A[Start] --> B[Read Configuration]
-    B --> C[Connect to PostgreSQL]
-```
 
 #### Database Schema
 ![Database Schema](database.png)
