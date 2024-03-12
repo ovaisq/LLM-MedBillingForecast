@@ -3,109 +3,103 @@
 ### General Overview
 
 ```mermaid
-%%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'20px',"fontFamily": "Trebuchet MS"}}}%%
+%%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'40px',"fontFamily": "Trebuchet MS"}}}%%
 flowchart TD
-style G fill:#aff,stroke:#333,stroke-width:8px
-style H fill:#aff,stroke:#333,stroke-width:8px
-style OLLAMA-LLM fill:#fff,stroke:#333stroke-witdh:0px
-style ProcessedPatientData fill:#fff
-style OriginalPatientData fill:#fff
-style Local fill:#ffe
-style EMR fill:#fff
-style Z fill:#a7e0f2,stroke:#13821a,stroke-width:4px
-subgraph subgraph_padding6[ ]
+    style PV fill:#fff
+    style ZZ fill:#a7e0f2,stroke:#13821a,stroke-width:4px
+    style LocalEnv fill:#a7e0f2
+    style PSQL fill:#aaa
+    style EMRADT fill:#a7e0f2
 
     classDef subgraph_padding fill:none,stroke:none
-    Z(("Zollama
-    Service API"))
-    B(meditron)
-    BA(medllama)
-    C("Patient")
-    D[(PostgreSQL)]
-    G["Business Intelligence
-    App"]
-    H["Revenue Monitoring
-    App"]
-    CAC("Clinical 
-    OSCE Notes")
-    C --> EMR
-    EMR --> Z
-    Z --> Local
+    EMRADT["POLL&nbspADT/EMR&nbspData"]
+    ZZ(("`**ZOllama
+    &nbsp&nbsp&nbsp&nbspService&nbspAPI**`"&nbsp&nbsp&nbsp))
 
-subgraph Local["Local Environment"]
 
-subgraph subgraph_padding5[ ]
-PatientOllama --> ProcessedPatientData
-PJSON -- Encrypted --> D
-
-OPDA --> LoadBalancer
-Summary --> PatientOllama
-OPDB -- "Un-Encrypted" --> D
-PPJSON -- "Un-Encrypted" --> D
-G <--> D
-H <--> D
-subgraph OriginalPatientData["Original Patient Data"]
-OPDA(Clinical Notes OSCE)
-OPDB(Patient ID)
-end
-
-subgraph LoadBalancer["Load Balancer"]
-subgraph subgraph_padding3[ ]
-subgraph OLLAMA-LLM["OLLAMA-LLM"]
-subgraph Summary["Summarize Notes"]
-    SA(deepseek-llm)
-end
-subgraph PatientOllama["Patient Diagnoses"]
-    B
-    BA
-end
-end
-end
-end
-subgraph ProcessedPatientData["Processed Patient Data"]
-
-    subgraph subgraph_padding2[ ]
-
-        subgraph PJSON["JSON"]
-
-            PDB("Summarized
-            OSCE Notes")
-            PDC("Recommended
-            Diagnoses")
-        end
-        subgraph PPJSON["JSON"]
-
-            subgraph DiagnosticKeyWords["Keywords"]
-
-            end
-            subgraph ICD["ICD
-            Codes"]
-
-            end
-            subgraph CPT["CPT
-            Codes"]
-
-            end
-            subgraph PRESCRIPTION["Prescriptions"]
-
-            end
+    EMRADT ==> PV ====> ZZ ===> PVO
+    PVO ====> OLLAMA ====> EPPD ==Encrypted=====> PSQL
+    OLLAMA ==> PPD ==Un-Encrypted=====> PSQL
+    Summary ===> Med
+  
+    subgraph PV["Patient&nbspVitals"]
+        subgraph blank2[ ]
+            PVN("Doctor Patient
+            Visit Note
+            (OSCE format)")
+            PI["Patient ID"]
         end
     end
-end
 
-end
-end
-subgraph EMR["ADT/EMR"]
-
-    CAC
-end
-end
-class subgraph_padding1 subgraph_padding
-class subgraph_padding2 subgraph_padding
-class subgraph_padding3 subgraph_padding
-class subgraph_padding4 subgraph_padding
-class subgraph_padding5 subgraph_padding
-class subgraph_padding6 subgraph_padding
+    subgraph LocalEnv["`**Local&nbspEnvironment**`"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp]
+        subgraph blank[ ]
+            direction TB
+            PSQL[("`**PostgreSQL**`")]
+            subgraph PVO["Original&nbspPatient&nbspNote"]
+                direction LR
+                subgraph blank3[ ]
+                    direction LR
+                    ORP("Doctor Patient
+                        Visit Note
+                        (OSCE format)")
+                    ORPI["Patient ID"]
+                end
+            end
+            subgraph OLLAMA["OLLAMA"]
+                subgraph blank4[ ]
+                    direction TB
+                    subgraph Summary["Summarize Notes"]
+                        subgraph blank7[ ]
+                            LLM0[deepseek-llm]
+                        end
+                    end
+                    subgraph Med["Medical"]
+                        subgraph blank8[ ]
+                            LLM1[medllama2]
+                            LLM2[meditron]
+                        end
+                    end
+                end
+            end
+            subgraph EPPD["Processed&nbspPatient&nbspData"]
+                direction TB
+                subgraph blank5[ ]
+                    subgraph JSON
+                        subgraph blank6[ ]
+                            JAA["GPT Response: Summarized Note"]
+                            JAB["GPT Response: Recommended Diagnoses"]
+                        end
+                    end
+                end
+            end
+            subgraph PPD["Processed&nbspPatient&nbspData"]
+                direction TB
+                subgraph blank9[ ]
+                    subgraph AJSON["JSON"]
+                        subgraph blank10[ ]
+                            JAC["GPT Response: Recommended Diagnoses ICD-10 codes"]
+                            JAD["GPT Response: Recommended Diagnoses CPT codes"]
+                            JAE["GPT Response: Recommended Prescription"]
+                            JAF["GPT Response: Recommended Prescription CPT codes"]
+                            JAG["GPT Response: Keywords"]
+                        end
+                    end
+                end
+            end
+            
+        end
+    end
+    class blank subgraph_padding
+    class blank2 subgraph_padding
+    class blank3 subgraph_padding
+    class blank4 subgraph_padding
+    class blank5 subgraph_padding
+    class blank6 subgraph_padding
+    class blank7 subgraph_padding
+    class blank8 subgraph_padding
+    class blank9 subgraph_padding
+    class blank9 subgraph_padding
+    class blank10 subgraph_padding
 ```
 
 #### API Overview
