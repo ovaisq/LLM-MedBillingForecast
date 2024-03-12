@@ -21,7 +21,7 @@ flowchart TD
 
     EMRADT ==> PV ====> ZZ ===> PVO
     PVO ====> OLLAMA
-    Med ==> PPD ==Un-Encrypted=====> PSQL
+    Med ===> PPD ==Un-Encrypted=====> PSQL
     Med ==> EPPD ==Encrypted=====> PSQL
     Summary ===> Med
     BI <=====> PSQL
