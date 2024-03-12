@@ -12,7 +12,7 @@ style ProcessedPatientData fill:#fff
 style OriginalPatientData fill:#fff
 style Local fill:#ffe
 style EMR fill:#fff
-style Z fill:
+style Z fill:#a7e0f2,stroke:#13821a,stroke-width:4px
 subgraph subgraph_padding6[ ]
 
     classDef subgraph_padding fill:none,stroke:none
@@ -115,7 +115,8 @@ graph LR
     sub["/login"] --> sub1
     sub["/analyze_visit_note"] --> sub2
     sub["/analyze_visit_notes"] --> sub3
-    sub["CLIENT"] --> sub11
+    sub["CLIENT"] --> sub0
+    sub0["GET: Login]
     sub1["POST: Generate JWT"]
     sub2["GET: Analyze Visit OSCE format Visit Note"]
     sub3["GET: Analyze all OSCE format Visit Notes that exist in database"]
