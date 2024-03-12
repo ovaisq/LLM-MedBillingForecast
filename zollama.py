@@ -66,7 +66,6 @@ from database import insert_data_into_table
 from database import get_select_query_result_dicts
 from encryption import encrypt_text, decrypt_text
 from gptutils import prompt_chat
-from reddit_api import create_reddit_instance
 from utils import ts_int_to_dt_obj
 from utils import serialize_datetime
 
@@ -86,9 +85,6 @@ app.config.update(
                   PERMANENT_SESSION_LIFETIME=172800 #2 days
                  )
 jwt = JWTManager(app)
-
-# Reddit authentication
-REDDIT = create_reddit_instance()
 
 @app.route('/login', methods=['POST'])
 def login():

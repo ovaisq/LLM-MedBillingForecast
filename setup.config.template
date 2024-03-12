@@ -7,13 +7,6 @@ database=
 user=
 password=
 
-[reddit]
-client_id=
-client_secret=
-username=
-password=
-user_agent=
-
 [service]
 JWT_SECRET_KEY=
 SRVC_SHARED_SECRET=

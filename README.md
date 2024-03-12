@@ -5,174 +5,120 @@
 ```mermaid
 %%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'20px',"fontFamily": "Trebuchet MS"}}}%%
 flowchart TD
+style G fill:#aff,stroke:#333,stroke-width:8px
+style H fill:#aff,stroke:#333,stroke-width:8px
+style OLLAMA-LLM fill:#fff,stroke:#333stroke-witdh:0px
+style ProcessedPatientData fill:#fff
+style OriginalPatientData fill:#fff
+style Local fill:#ffe
+style EMR fill:#fff
+style Z fill:
+subgraph subgraph_padding6[ ]
+
     classDef subgraph_padding fill:none,stroke:none
-    Z(("`**ZOllama
-    Service API**`"))
-    A(gemma)
-    AZA(llama2)
-    AZB(deepseek-llm)
+    Z(("Zollama
+    Service API"))
     B(meditron)
     BA(medllama)
-    C("`**Patient**`")
-    F("`**Redditor**`")
+    C("Patient")
     D[(PostgreSQL)]
-    G["Business Intelligence"]
-    H["Revenue Monitoring"]
-    AE(Posts)
-    AF(Comments)
-    AG(Subreddits)
-    CAC(Clinical Notes OSCE)
-    Reddit --> Z
+    G["Business Intelligence
+    App"]
+    H["Revenue Monitoring
+    App"]
+    CAC("Clinical 
+    OSCE Notes")
     C --> EMR
     EMR --> Z
     Z --> Local
-    F --> Reddit
 
+subgraph Local["Local Environment"]
 
-subgraph Local["`**Local Environment**`"]
-direction TB
 subgraph subgraph_padding5[ ]
-direction TB
 PatientOllama --> ProcessedPatientData
-RedditOllama --> ProcessedRedditData
 PJSON -- Encrypted --> D
-ProcessedRedditData -- "Un-Encrypted" --> D
-RDD --> LoadBalancer
-RDE --> LoadBalancer
-RDD --"Un-Encrypted"--> D
-RDE --"Un-Encrypted"--> D
-RDC --"Un-Encrypted"--> D
+
 OPDA --> LoadBalancer
 Summary --> PatientOllama
 OPDB -- "Un-Encrypted" --> D
 PPJSON -- "Un-Encrypted" --> D
 G <--> D
 H <--> D
-
-subgraph OriginalPatientData["`**Original Patient Data**`"]
-direction TB
+subgraph OriginalPatientData["Original Patient Data"]
 OPDA(Clinical Notes OSCE)
 OPDB(Patient ID)
 end
-subgraph RedditData["`**Original Reddit Data**`"]
-direction TB
-subgraph subgraph_padding4[ ]
-direction TB
-subgraph RDBMS["`_RDBMS_`"]
-direction TB
-    RDD(Redditor Posts)
-    RDE(Redditor Comments)
-    RDC(Subreddits)
-end
-end
-end
-subgraph LoadBalancer["`**Load Balancer**`"]
-direction TB
+
+subgraph LoadBalancer["Load Balancer"]
 subgraph subgraph_padding3[ ]
-direction TB
-subgraph OLLAMA-LLM["`**OLLAMA-LLM**`"]
-direction TB
-subgraph RedditOllama["`**Reddit**`"]
-direction TB
-    A
-    AZA
-    AZB
-end
-subgraph Summary["`**Summarize Notes**`" ]
+subgraph OLLAMA-LLM["OLLAMA-LLM"]
+subgraph Summary["Summarize Notes"]
     SA(deepseek-llm)
 end
-subgraph PatientOllama["`**Patient Diagnoses**`"]
-direction TB
+subgraph PatientOllama["Patient Diagnoses"]
     B
     BA
 end
 end
 end
 end
-subgraph ProcessedPatientData["`**Processed Patient Data**`"]
-    direction TB
+subgraph ProcessedPatientData["Processed Patient Data"]
+
     subgraph subgraph_padding2[ ]
-        direction TB
-        subgraph PJSON["`_JSON_`"]
-            direction TB
-            PDB(Summarized OSCE Notes)
-            PDC(Recommended Diagnoses)
+
+        subgraph PJSON["JSON"]
+
+            PDB("Summarized
+            OSCE Notes")
+            PDC("Recommended
+            Diagnoses")
         end
-        subgraph PPJSON["`_JSON_`"]
-            direction TB
-            subgraph DiagnosticKeyWords["Key Words"]
+        subgraph PPJSON["JSON"]
+
+            subgraph DiagnosticKeyWords["Keywords"]
+
             end
-            subgraph ICD["ICD Codes"]
+            subgraph ICD["ICD
+            Codes"]
+
             end
-            subgraph CPT["CPT Codes"]
+            subgraph CPT["CPT
+            Codes"]
+
             end
             subgraph PRESCRIPTION["Prescriptions"]
+
             end
         end
     end
 end
-subgraph ProcessedRedditData["`**Processed Reddit Data**`"]
-subgraph subgraph_padding1[ ]
-    direction TB
-subgraph JSON["`_JSON_`"]
-    direction TB
-    RDA(Analyzed Posts)
-    RDB(Analyzed Comments)
+
 end
 end
-end
-end
-end
-subgraph EMR["`**ADT/EMR**`"]
-direction TB
+subgraph EMR["ADT/EMR"]
+
     CAC
 end
-subgraph Reddit["`**Reddit**`"]
-direction TB
-    AE
-    AF
-    AG
 end
 class subgraph_padding1 subgraph_padding
 class subgraph_padding2 subgraph_padding
 class subgraph_padding3 subgraph_padding
 class subgraph_padding4 subgraph_padding
 class subgraph_padding5 subgraph_padding
+class subgraph_padding6 subgraph_padding
 ```
 
 #### API Overview
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'lineColor': 'Blue'}}}%%
 graph LR
-    sub["/login"] --> sub3
-    sub["/analyze_post"] --> sub1
-    sub["/analyze_posts"] --> sub2
-    sub["/analyze_comment"] --> sub9
-    sub["/analyze_comments"] --> sub10
-    sub["/get_sub_post"] --> sub4
-    sub["/get_sub_posts"] --> sub5
-    sub["/get_author_comments"] --> sub6
-    sub["/get_authors_comments"] --> sub7
-    sub["/get_and_analyze_post"] --> sub12
-    sub["/get_and_analyze_comment"] --> sub14
-    sub["/analyze_visit_notes"] --> sub15
-    sub["/join_new_subs"] --> sub11
-    sub["/analyze_visit_note"] --> sub13
+    sub["/login"] --> sub1
+    sub["/analyze_visit_note"] --> sub2
+    sub["/analyze_visit_notes"] --> sub3
     sub["CLIENT"] --> sub11
-    sub1["GET: Analyze a single Reddit post"]
-    sub2["GET: Analyze all Reddit posts in the database"]
-    sub3["POST: Generate JWT"]
-    sub4["GET: Get submission post content for a given post id"]
-    sub5["GET: Get submission posts for a given subreddit"]
-    sub6["GET: Get all comments for a given redditor"]
-    sub7["GET: Get all comments for each redditor from a list of authors in the database"]
-    sub9["GET: Chat prompt a given comment_id that's stored in DB"]
-    sub10["GET: Chat prompt all comments that are stored in DB"]
-    sub11["GET: Join all new subs from the post table in the database"]
-    sub12["GET: Fetch post from Reddit, then Chat prompt a given post_id"]
-    sub13["GET: Analyze Visit OSCE format Visit Note"]
-    sub14["GET: Fetch comment from Reddit, then Chat prompt a given comment_id"]
-    sub15["GET: Analyze all OSCE format Visit Notes that exist in database"]
+    sub1["POST: Generate JWT"]
+    sub2["GET: Analyze Visit OSCE format Visit Note"]
+    sub3["GET: Analyze all OSCE format Visit Notes that exist in database"]
 ```
 
 
@@ -190,23 +136,12 @@ graph LR
    - Stores all information as various JSON documents in PostgreSQL.
  * Encrypts the analyzed text and incorporates it into a searchable JSON document in PostgreSQL.
   
-**From Reddit**:
-* Service collects
-  - submissions
-  - comments for each submission
-  - author of each submission
-  - author of each comment to each submission
-  - and all comments for each author.
-*  Subscribes to subreddit that a submission was posted to
-
 ** Deployed as WSGI **  
 *  Uses Gunicorn WSGI
 
 #### How-to Run this
 * Install Python Modules:
     > pip3 install -r requirements.txt
-
-* Get Reddit API key: https://www.reddit.com/wiki/api/
 
 * Gen SSL key/cert for secure connection to the service
     > openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 3650
@@ -216,7 +151,7 @@ graph LR
    > Encrption Key File text_encryption.key created
 
 * Create Database and tables:
-    See **reddit.sql**
+    See **zollama.sql**
 
 ### Install Ollama-gpt 
 
@@ -294,13 +229,6 @@ Environment="OLLAMA_HOST=0.0.0.0"
     user=
     password=
 
-    [reddit]
-    client_id=
-    client_secret=
-    username=
-    password=
-    user_agent=
-
     [service]
     JWT_SECRET_KEY=
     SRVC_SHARED_SECRET=
@@ -346,34 +274,18 @@ Environment="OLLAMA_HOST=0.0.0.0"
 * These examples assume that environment variable **API_KEY** is using a valid API_KEY
 
 
-**Get All comments for all Redditors in the database**
+**Chat Prompt a given visit note id**
 ```shell
 > export api_key=<api_key>
 >
-> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${api_key}'"}' \
-  https://127.0.0.1:5000/login | jq -r .access_token) && curl -sk -X GET -H \
-  "Authorization: Bearer ${AT}" 'https://127.0.0.1:5000/get_authors_comments'
+> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${foo}'"}' https://127.0.0.1:5001/login | jq -r .access_token) && time curl -sk -X GET -H "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_visit_note?visit_note_id=<visit note id>'
 ```
-**On Service Console**:
+
+**Chat Prompt ALL patient visit notes that are currently stored in  database**
 ```shell
-    INFO:root:Getting comments for Redditor
-    INFO:root:Redditor 916 new comments
-    INFO:root:Processing Author Redditor
-    INFO:root:Processing Author Redditor
-    INFO:root:Processing Author Redditor
-    INFO:root:Processing Author Redditor
-```
-**Analyze a Post using Post ID that already exists in a post table in the database**
-```shell
-> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${API_KEY}'"}' \
-  https://127.0.0.1:5001/login | jq -r .access_token) && curl -sk -X GET -H \
-  "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_post?post_id=<Reddit Post ID>'
-```
-**Get and Analyze a Post using Post ID that has not yet been added to the post table in the database**
-```shell
-> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${API_KEY}'"}' \
-  https://127.0.0.1:5001/login | jq -r .access_token) && curl -sk -X GET -H \
-  "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/get_and_analyze_post?post_id=<Reddit Post ID>'
+> export api_key=<api_key>
+>
+> export AT=$(curl -sk -X POST -H "Content-Type: application/json" -d '{"api_key":"'${foo}'"}' https://127.0.0.1:5001/login | jq -r .access_token) && time curl -sk -X GET -H "Authorization: Bearer ${AT}" 'https://127.0.0.1:5001/analyze_visit_notes'
 ```
 
 ### General Workflow
@@ -381,25 +293,6 @@ Environment="OLLAMA_HOST=0.0.0.0"
 flowchart TD
     A[Start] --> B[Read Configuration]
     B --> C[Connect to PostgreSQL]
-    C --> D[Get new post IDs]
-    D --> E{Any new post IDs?}
-    E -- Yes --> F[Analyze Posts]
-    F --> G[Get Post Details]
-    G --> H[Process Author Information]
-    H --> I[Get Post Comments]
-    I --> J[Get Comment Details]
-    J --> K[Insert Comment Data into Database]
-    I --> L{More Comments?}
-    L -- Yes --> I
-    L -- No --> M[Sleep to Avoid Rate Limit]
-    E -- No --> N[Sleep to Avoid Rate Limit]
-    N --> D
-    M --> D
-    N --> O[Get New Subreddits]
-    O --> P{Any new subreddits?}
-    P -- Yes --> Q[Join New Subreddits]
-    Q --> O
-    P -- No --> R[End]
 ```
 
 #### Database Schema
@@ -411,8 +304,6 @@ flowchart TD
 
 ![llama-gpt-vm](llama-gpt-vm.png)
 
-#### Reddit Data Scraper Service VM config
-![service-vm](reddit-data-scrapper-vm.png)
 
 #### PostgreSQL VM config
 ![postgresql-vm](postgresql-vm.png)
