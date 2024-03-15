@@ -105,5 +105,6 @@ def lookup_cpt_codes(cpt_code_list):
                        }
 
             cpt_details.append(cpt_data)
+            logging.error('Error: %s', e.args[0])
 
     return cpt_details
