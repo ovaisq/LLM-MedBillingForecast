@@ -109,6 +109,26 @@ def analyze_visit_notes_endpoint():
     analyze_visit_notes()
     return jsonify({'message': 'analyze_visit_notes endpoint'})
 
+@app.route('/analyze_visit_note', methods=['GET'])
+@jwt_required()
+def analyze_visit_note_endpoint():
+    """Analyze OSCE format Visit Note that exists in the database
+    """
+
+    visit_note_id = request.args.get('visit_note_id')
+    analyze_visit_note(visit_note_id)
+    return jsonify({'message': 'analyze_visit_note endpoint'})
+
+@app.route('/get_patient', methods=['GET'])
+@jwt_required()
+def get_patient_endpoint():
+    """Get a patient record
+    """
+
+    patient_id = request.args.get('patient_id')
+    get_patient_record(patient_id)
+    return jsonify({'message': 'get_patient endpoint'})
+
 def analyze_visit_notes():
     """Analyze all visit notes in the db
     """
@@ -122,15 +142,6 @@ def analyze_visit_notes():
     for a_visit_note_id in all_visit_notes:
         analyze_visit_note(a_visit_note_id['patient_note_id'])
 
-@app.route('/analyze_visit_note', methods=['GET'])
-@jwt_required()
-def analyze_visit_note_endpoint():
-    """Analyze OSCE format Visit Note that exists in the database
-    """
-
-    visit_note_id = request.args.get('visit_note_id')
-    analyze_visit_note(visit_note_id)
-    return jsonify({'message': 'analyze_visit_note endpoint'})
 
 def analyze_visit_note(visit_note_id):
     """Analyze a specific visit note that exists in the database
@@ -175,9 +186,7 @@ def analyze_visit_note(visit_note_id):
             get_store_icd_cpt_codes(patient_id, patient_document_id, llm, recommended_diagnosis)
             recommended_diagnosis = analyzed_obj['analysis'] #originally encrypted
 
-            if encrypt_analysis:
-                osce_note_summarized = encrypt_text(summarized_obj['analysis']).decode('utf-8')
-            else:
+            if not encrypt_analysis:
                 logging.error('URGENT: Patient Data Encryption disabled! \
                               If spotted in Production logs, notify immediately!')
 
@@ -256,6 +265,36 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                   'codes_document' : json.dumps(codes_document)
                  }
     insert_data_into_table('patient_codes', codes_data)
+
+def get_patient_record(patient_id):
+    """Get all notes, documents, and billing information available
+        for a given patient_id
+    """
+
+    sql_query = f"""
+                    select
+                        pn.patient_id,
+                        pn.patient_note_id,
+                        pn.patient_note as patient_note,
+                        pd.patient_document_id,
+                        pd.analysis_document as patient_document,
+                        pc.codes_document as patient_codes
+                    from
+                        patient_notes pn
+                    left join patient_documents pd on
+                        pn.patient_id = pd.patient_id
+                        and pn.patient_note_id = pd.patient_note_id
+                    left join patient_codes pc on
+                        pd.patient_id = pc.patient_id
+                        and pd.patient_document_id = pc.patient_document_id
+                    where
+                        pd.patient_document_id is not null
+                        and pn.patient_id = '{patient_id}';
+                 """
+
+    patient_record = get_select_query_result_dicts(sql_query)
+
+    return patient_record
 
 if __name__ == "__main__":
 

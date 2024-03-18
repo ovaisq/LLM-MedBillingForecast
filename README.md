@@ -1,7 +1,79 @@
 ## ZOLLAMA-GPT
 
 ### General Overview
+```mermaid
+%%{init: {'theme': 'forest'}}%%
+graph TD;
+  style ZZ fill:#a7e0f2,stroke:#13821a,stroke-width:4px
+  style DataPoll fill:#a7e0f2,stroke:#13821a,stroke-width:4px
+  style Import fill:#a7e0f2,stroke:#13821a,stroke-width:4px
+  Client["API Client"]
+  PatientData["Patient Data
+  ADT/EMR"]
+  PSQL[("PostgreSQL")]
+  subgraph DP[ ]
+  DataPoll("Poll Data
+  from
+  ADT/EMR")
+  Import("Import
+  OSCE
+  Notes Text")
+  end
+  subgraph Zollama[ ]
+    ZZ(("`**ZOllama
+    &nbsp&nbsp&nbsp&nbspService&nbspAPI**`"&nbsp&nbsp&nbsp
+    Debian 12 VM
+    &nbsp&nbsp&nbsp4 vCPU, 2GB RAM&nbsp&nbsp&nbsp ))
+  end
+  subgraph Load_Balancer["Load Balancer"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp]
+    Nginx["Nginx
+    Debian 12
+    4 vCPU, 2GB RAM"]
+  end
+  
+  subgraph Nodes["Ollama Nodes"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp]
+    Node1[MacOS Sonoma 14.4
+    MacBook Pro M1 Max
+    32GB RAM]
+    Node2[Debian 12
+    16 Cores
+    48GB RAM
+    nVidia GTX 1070ti 8GB VRAM]
+    Node3[Debian 12 VM
+    16 vCPU
+    32GB RAM
+    nVidia RTX 3060 12GB VRAM]
+  end
+  
+  Nginx -- RR --> Node1
+  Nginx -- RR --> Node2
+  Nginx -- RR --> Node3
+  ZZ --> Nginx
+  PatientData --> DP <--> PSQL
+  Client --> ZZ
+  Nodes --> PSQL
+  ZZ <--> PSQL
+  PSQL --- JSONB["
+  Indexed
+  JSON Documents"]
+  PSQL --- VECTOR["Vector 
+  Embeddings"]
+  PSQL --- M["MEDICARE
+  DATA"]
+  PSQL --- C["CPT/HCPCS
+  CODES DETAILS"]
+  M --- N["Locality
+  Data"]
+  C --- CPT["CPT Code
+  Details"]
+  C --- HCPCS["HCPCS Code
+  Details"]
+  C --- P["Physician
+  Fee Schedules"]
 
+```
+
+### Detail Overview
 ```mermaid
 %%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'40px',"fontFamily": "Trebuchet MS"}}}%%
 flowchart TD
@@ -12,20 +84,22 @@ flowchart TD
     style EMRADT fill:#a7e0f2
     style BI fill:#ffa,stroke:#13821a,stroke-width:8px
     style RM fill:#ffa,stroke:#13821a,stroke-width:8px
+    style BILLING fill:#a7c0f2,stroke:#13821a,stroke-width:4px
+    style Medicare fill:#fff,stroke:#13821a,stroke-width:4px
 
     classDef subgraph_padding fill:none,stroke:none
     EMRADT["POLL&nbspADT/EMR&nbspData"]
     ZZ(("`**ZOllama
     &nbsp&nbsp&nbsp&nbspService&nbspAPI**`"&nbsp&nbsp&nbsp))
 
-
     EMRADT ==> PV ====> ZZ ===> PVO
     PVO ====> OLLAMA
-    Med ===> PPD ==Un-Encrypted=====> PSQL
+    Med ===> PPD ==> BILLING ==Un-Encrypted=====> PSQL
     Med ==> EPPD ==Encrypted=====> PSQL
     Summary ===> Med
     BI <=====> PSQL
     RM <=====> PSQL
+
 
     subgraph PV["Patient&nbspVitals"]
         subgraph blank2[ ]
@@ -72,6 +146,11 @@ flowchart TD
                     end
                 end
             end
+            subgraph BILLING["Billing Estimates"]
+              subgraph blank12[ ]
+                Medicare
+              end
+            end
             subgraph EPPD["Processed&nbspPatient&nbspData"]
                 direction TB
                 subgraph blank5[ ]
@@ -101,6 +180,7 @@ flowchart TD
                     PID["Patient ID"]
                     end
                 end
+              
             end
 
             
@@ -118,42 +198,66 @@ flowchart TD
     class blank9 subgraph_padding
     class blank10 subgraph_padding
     class blank11 subgraph_padding
+    class blank12 subgraph_padding
 ```
 
-#### Environment Configuration
-```mermaid
-%%{init: {'theme': 'forest'}}%%
-graph TD;
-    style ZZ fill:#a7e0f2,stroke:#13821a,stroke-width:4px
-  subgraph Zollama[ ]
-  ZZ(("`**ZOllama
-    &nbsp&nbsp&nbsp&nbspService&nbspAPI**`"&nbsp&nbsp&nbsp
-    Debian 12 VM
-    &nbsp&nbsp&nbsp4 vCPU, 2GB RAM&nbsp&nbsp&nbsp ))
-  end
-  subgraph Load_Balancer["Load Balancer"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp]
-    Nginx[Nginx]
-  end
-  
-  subgraph Nodes["Nodes"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp]
-    Node1[MacOS Sonoma 14.4
-    MacBook Pro M1 Max
-    32GB RAM]
-    Node2[Debian 12
-    16 Cores
-    48GB RAM
-    nVidia GTX 1070ti 8GB VRAM]
-    Node3[Debian 12 VM
-    16 vCPU
-    32GB RAM
-    nVidia RTX 3060 12GB VRAM]
-  end
-  
-  Nginx -- RR --> Node1
-  Nginx -- RR --> Node2
-  Nginx -- RR --> Node3
-  ZZ --> Nginx
+#### Sample Data
+
+**Sample HL7 string for a medicare patient**
+```shell
+MSH|^~\&|SENDING_APPLICATION|SENDING_FACILITY|RECEIVING_APPLICATION|RECEIVING_FACILITY|20240315120000||ADT^A04|123456789|P|2.3|
+EVN|A04|20240315091000||
+PID|1||123456789||Doe^John^^^Mr.||19600515|M|||123 Main St^^Anytown^NY^12345||555-555-5555|||S|||00000|||123-45-6789|
+PV1|1|O|^^^BED^Room|||||||1000^Attending Doctor^Doctor^^Dr.^^^12345678|||||||||||||||||||||||||20240315120000|
+DG1|1|ICD|I21.3|ST elevation (STEMI) myocardial infarction of unspecified site|||
+DG1|2|ICD|I25.2|Old myocardial infarction|||
+DG1|3|CPT|99223|Initial hospital care, typically 70 minutes|||
+DG1|4|CPT|93010|Electrocardiogram, routine ECG with at least 12 leads|||
+DG1|5|CPT|93000|Electrocardiogram, routine ECG with at least 12 leads; interpretation and report only|||
+ZCL|1|MAC|ABCDE|Medicare Administrative Contractor|
+ZCL|2|LOC|01|Locality Code|
 ```
+
+**Sample condensced Visit Note OSCE format**
+```shell
+D: How may I help you?
+
+P: Hi, yes I've had this pain in my left elbow for a couple of weeks now and it's not 
+getting any better so. I'm just here to kind of figure out what it is. 
+
+D: OK alright are you feeling this pain on the lateral side of the elbow, on the or on 
+the medial side of the elbow?
+
+P: It's on the medial side. 
+
+D: OK and sorry, when did this pain exactly start?
+
+P: So it's been on going for like the past three months. But it's gotten worse over 
+the last, I'd say three weeks. 
+
+D: OK, and. Has the pain been getting worse, any better?
+
+P: Oh the pains been getting worse.
+```
+
+**OSCE Visit Note Summarized(deepseek-llm)**:
+```shell
+The patient has presented with symptoms of fever, headache, fatigue, brain fog, and muscle aches.
+The doctor suspects a viral infection, specifically COVID-19, influenza, or a common cold. They 
+have ordered PCR COVID-19 swab as well as general lab work to further investigate the cause of the 
+patient's symptoms. The doctor also mentions the possibility of meningitis and will investigate 
+this further by potentially ordering a lumbar puncture or blood work if needed.
+```
+
+**RECOMMENDED DIAGNOSIS (medllama2)**:
+```shell
+This patient has a high risk of developing severe COVID-19 due to their age and underlying health
+conditions. They should be isolated immediately, and we should contact the local public health
+agency for further guidance. We need to ensure that they have access to appropriate medical care 
+and support.
+```
+
+
 
 #### API Overview
 ```mermaid
@@ -162,11 +266,13 @@ graph LR
     sub["/login"] --> sub1
     sub["/analyze_visit_note"] --> sub2
     sub["/analyze_visit_notes"] --> sub3
+    sub["/get_patient"] --> sub4
     sub["CLIENT"] --> sub0
     sub0["GET: Login"]
     sub1["POST: Generate JWT"]
     sub2["GET: Analyze Visit OSCE format Visit Note"]
     sub3["GET: Analyze all OSCE format Visit Notes that exist in database"]
+    sub4["GET: Patient Record for a given patient id"]
 ```
 
 
