@@ -72,5 +72,6 @@ async def prompt_chat(llm,
 
         return analyzed_obj
     except (httpx.ReadError, httpx.ConnectError) as e:
+        logging.error('Error: %s', e.args[0])
         logging.error('Unable to reach Ollama Server: %s', CONFIG.get('service','OLLAMA_API_URL'))
         return False

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import requests
 from bs4 import BeautifulSoup
 
@@ -47,6 +48,8 @@ def lookup_cpt_codes(cpt_code_list):
             return cpt
         except AttributeError as e:
             print (f'{cpt_code} not found')
+            logging.error('Error: %s %s not found', e.args[0], cpt_code)
+
 
 cpt_codes = ['43850', '90865', '74230']
 lookup_cpt_codes(cpt_codes)
