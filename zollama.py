@@ -53,7 +53,7 @@
 import asyncio
 import json
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 
 # Import required local modules
@@ -61,7 +61,7 @@ from config import get_config
 from clincodeutils import extract_icd10_codes
 from clincodeutils import extract_cpt_codes
 from clincodeutils import icd_10_code_details_list
-from clincodeutils import lookup_cpt_codes
+from clincodeutils import lookup_cpt_gpt
 from database import insert_data_into_table
 from database import get_select_query_result_dicts
 from encryption import encrypt_text, decrypt_text
@@ -106,7 +106,8 @@ def analyze_visit_notes_endpoint():
     """Analyze all OSCE format Visit Notes that exist in database
     """
 
-    analyze_visit_notes()
+    if not analyze_visit_notes():
+        abort(502, description="Ollama Server not available")
     return jsonify({'message': 'analyze_visit_notes endpoint'})
 
 @app.route('/analyze_visit_note', methods=['GET'])
@@ -140,12 +141,16 @@ def analyze_visit_notes():
 
     all_visit_notes = get_select_query_result_dicts(sql_query)
     for a_visit_note_id in all_visit_notes:
-        analyze_visit_note(a_visit_note_id['patient_note_id'])
+        result = analyze_visit_note(a_visit_note_id['patient_note_id'])
+        if not result:
+            return False
 
 
 def analyze_visit_note(visit_note_id):
     """Analyze a specific visit note that exists in the database
     """
+
+    encrypt_analysis = CONFIG.getboolean('service', 'PATIENT_DATA_ENCRYPTION_ENABLED')
 
     sql_query = f"""SELECT
                         patient_id, patient_note_id, patient_note 
@@ -164,50 +169,54 @@ def analyze_visit_note(visit_note_id):
         content = decrypt_text(visit_note['patient_note']['note'])
 
         prompt = "What Disease does this Patient Have? P is patient, D is Doctor"
-        summarized_obj, _ = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
+        summarized_obj = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
 
-        # summary is created here, and then used for diagnostics, should be encrypted when
-        #  before storing it in db
-        osce_note_summarized = summarized_obj['analysis']
-        prompt = 'Diagnose this patient: '
+        if summarized_obj:
+            # summary is created here, and then used for diagnostics, should be encrypted when
+            #  before storing it in db
+            osce_note_summarized = summarized_obj['analysis']
+            prompt = 'Diagnose this patient: '
 
-        # PII should always be encrypted
-        for llm in MEDLLMS:
-            analyzed_obj, encrypt_analysis = asyncio.run(
-                                                         prompt_chat(
-                                                                     llm,
-                                                                     prompt +
-                                                                     summarized_obj['analysis']
-                                                                    )
-                                                        )
-            # decrypt for ICD/DPT codes processing only. this happens and should ONLY happen here
-            recommended_diagnosis = decrypt_text(analyzed_obj['analysis'])
-            patient_document_id = analyzed_obj['shasum_512']
-            get_store_icd_cpt_codes(patient_id, patient_document_id, llm, recommended_diagnosis)
-            recommended_diagnosis = analyzed_obj['analysis'] #originally encrypted
+            # PII should always be encrypted
+            for llm in MEDLLMS:
+                analyzed_obj = asyncio.run(
+                                           prompt_chat(
+                                                       llm,
+                                                       prompt +
+                                                       decrypt_text(summarized_obj['analysis'])
+                                                      )
+                                          )
+                # decrypt for ICD/DPT codes processing only. this happens and should ONLY happen here
+                recommended_diagnosis = decrypt_text(analyzed_obj['analysis'])
+                patient_document_id = analyzed_obj['shasum_512']
+                get_store_icd_cpt_codes(patient_id, patient_document_id, llm, recommended_diagnosis)
+                recommended_diagnosis = analyzed_obj['analysis'] #originally encrypted
 
-            if not encrypt_analysis:
-                logging.error('URGENT: Patient Data Encryption disabled! \
-                              If spotted in Production logs, notify immediately!')
+                if not encrypt_analysis:
+                    logging.error('URGENT: Patient Data Encryption disabled! \
+                                If spotted in Production logs, notify immediately!')
 
-            patient_data_obj = {
-                                'schema_version' : '3',
-                                'llm' : llm,
-                                'source' : 'healthcare',
-                                'category' : 'patient',
-                                'patient_id' : patient_id,
-                                'patient_note_id' : patient_note_id,
-                                'osce_note_summarized' : osce_note_summarized,
-                                'analysis_document' : recommended_diagnosis 
-                                }
-            patient_analysis_data = {
-                                        'timestamp' : analyzed_obj['timestamp'],
-                                        'patient_document_id' : patient_document_id,
-                                        'patient_id' : patient_id,
-                                        'patient_note_id' : patient_note_id,
-                                        'analysis_document' : json.dumps(patient_data_obj)
-                                        }
-            insert_data_into_table('patient_documents', patient_analysis_data)
+                patient_data_obj = {
+                                    'schema_version' : '3',
+                                    'llm' : llm,
+                                    'source' : 'healthcare',
+                                    'category' : 'patient',
+                                    'patient_id' : patient_id,
+                                    'patient_note_id' : patient_note_id,
+                                    'osce_note_summarized' : osce_note_summarized,
+                                    'analysis_document' : recommended_diagnosis 
+                                    }
+                patient_analysis_data = {
+                                            'timestamp' : analyzed_obj['timestamp'],
+                                            'patient_document_id' : patient_document_id,
+                                            'patient_id' : patient_id,
+                                            'patient_note_id' : patient_note_id,
+                                            'analysis_document' : json.dumps(patient_data_obj)
+                                            }
+                insert_data_into_table('patient_documents', patient_analysis_data)
+                return True
+        else:
+            return False
 
 def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_content):
     """Get icd and cpt codes for the diagnosis and store the two
@@ -226,16 +235,16 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
         prescription_prompt = 'What medication to prescribe for the diagnosis? '
 
     # do not encrypt
-    icd_obj, _ = asyncio.run(prompt_chat(llm, icd_prompt + analyzed_content, False))
+    icd_obj = asyncio.run(prompt_chat(llm, icd_prompt + analyzed_content, False))
 
     # do not encrypt
-    cpt_obj, _ = asyncio.run(prompt_chat(llm, cpt_prompt + analyzed_content, False))
+    cpt_obj = asyncio.run(prompt_chat(llm, cpt_prompt + analyzed_content, False))
 
     # do not encrypt
-    prescription_obj, _ = asyncio.run(prompt_chat(llm, prescription_prompt + analyzed_content, False))
+    prescription_obj = asyncio.run(prompt_chat(llm, prescription_prompt + analyzed_content, False))
 
     # do not encrypt
-    prescription_cpt_obj, _ = asyncio.run(prompt_chat(llm, prescription_cpt_prompt + prescription_obj['analysis'], False))
+    prescription_cpt_obj = asyncio.run(prompt_chat(llm, prescription_cpt_prompt + prescription_obj['analysis'], False))
 
     codes_document = {
                       'icd' : {
@@ -246,7 +255,7 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                       'cpt' : { 
                                'timestamp' : serialize_datetime(cpt_obj['timestamp']),
                                'codes' : extract_cpt_codes(cpt_obj['analysis']),
-                               'details' : lookup_cpt_codes(extract_cpt_codes(cpt_obj['analysis']))
+                               'details' : lookup_cpt_gpt(extract_cpt_codes(cpt_obj['analysis']))
                               },
                       'prescription' : { 
                                          'timestamp' : serialize_datetime(prescription_obj['timestamp']),
@@ -255,7 +264,7 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                       'prescription_cpt' : {
                                             'timestamp' : serialize_datetime(prescription_cpt_obj['timestamp']),
                                             'codes' : extract_cpt_codes(prescription_cpt_obj['analysis']),
-                                            'details' : lookup_cpt_codes(extract_cpt_codes(prescription_cpt_obj['analysis']))
+                                            'details' : lookup_cpt_gpt(extract_cpt_codes(prescription_cpt_obj['analysis']))
                                            }
                      }
     codes_data = {

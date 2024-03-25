@@ -5,11 +5,12 @@ import datetime
 import logging
 import time
 import random
+import requests
 import string
 from datetime import datetime as DT
 
 
-# substrings to be rplaced
+# substrings to be replaced
 TBR = ["As an AI language model, I don't have personal preferences or feelings. However,",
        "As an AI language model, I don't have personal preferences or opinions, but ",
        "I'm sorry to hear you're feeling that way! As an AI language model, I don't have access to real-time information on Hypmic or its future plans. However,",
@@ -82,3 +83,29 @@ def serialize_datetime(obj):
     if isinstance(obj, (datetime.datetime, datetime.datetime)): 
         return obj.isoformat() 
     raise TypeError("Type not serializable")
+
+def check_endpoint_health(url):
+    """Check if endpoint is available
+    """
+
+    try:
+        response = requests.head(url)
+        if response.status_code == requests.codes.ok:
+            return True
+        else:
+            return False
+    except requests.exceptions.RequestException:
+        return False
+
+def retry_with_timeout(max_retry_count, timeout_seconds, func, *args, **kwargs):
+    start_time = time.time()
+    retry_count = 0
+    while True:
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            retry_count += 1
+            if retry_count >= max_retry_count or time.time() - start_time >= timeout_seconds:
+                raise e
+            print(f"Retry {retry_count} failed. Retrying...")
+            time.sleep(1)  # Wait for 1 second before retrying

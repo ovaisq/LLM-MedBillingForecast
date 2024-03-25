@@ -5,6 +5,7 @@
 import hashlib
 import logging
 import httpx
+import sys
 
 from ollama import AsyncClient
 
@@ -12,6 +13,7 @@ from config import get_config
 from encryption import encrypt_text
 from utils import ts_int_to_dt_obj
 from utils import sanitize_string
+from utils import check_endpoint_health
 
 CONFIG = get_config()
 
@@ -23,8 +25,14 @@ async def prompt_chat(llm,
     """Llama Chat Prompting and response
     """
 
+    ollama_server = CONFIG.get('service','OLLAMA_API_URL')
+
+    if not check_endpoint_health(ollama_server):
+       logging.error('Ollama Server %s is not available', ollama_server)
+       return False
+
     dt = ts_int_to_dt_obj()
-    client = AsyncClient(host=CONFIG.get('service','OLLAMA_API_URL'))
+    client = AsyncClient(host=ollama_server)
     logging.info('Running for %s', llm)
     try:
         response = await client.chat(
@@ -33,8 +41,7 @@ async def prompt_chat(llm,
                                         messages=[
                                                   {
                                                    'role': 'user',
-                                                   'content': content,
-                                                   'keep_alive' : 0
+                                                   'content': content
                                                   },
                                                  ],
                                         options = {
@@ -63,7 +70,7 @@ async def prompt_chat(llm,
                         'analysis' : analysis
                         }
 
-        return analyzed_obj, encrypt_analysis
+        return analyzed_obj
     except (httpx.ReadError, httpx.ConnectError) as e:
-        logging.error('%s',e.args[0])
-        raise httpx.ConnectError('Unable to reach Ollama Server') from None
+        logging.error('Unable to reach Ollama Server: %s', CONFIG.get('service','OLLAMA_API_URL'))
+        return False
