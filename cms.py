@@ -69,7 +69,7 @@ def get_details(hcpcs_code):
         {
         "resource": "t",
         "property": "hcpc",
-        "value": f"{a_code}",
+        "value": f"{hcpcs_code}",
         "operator": "="
         }
     ],
@@ -750,7 +750,7 @@ def get_details(hcpcs_code):
         {
         "resource": "i",
         "property": "hcpc",
-        "value": f"{a_code}",
+        "value": f"{hcpcs_code}",
         "operator": "="
         }
     ],
@@ -791,8 +791,8 @@ def get_details(hcpcs_code):
     "keys": True
     }
 
-    url1 = f'https://pfs.data.cms.gov/api/1/datastore/query?search=hcpcsCheck{a_code}&redirect=false&ACA='
-    url2 = f'https://pfs.data.cms.gov/api/1/datastore/query?search=pricing_single_{a_code}&redirect=false&ACA='
+    url1 = f'https://pfs.data.cms.gov/api/1/datastore/query?search=hcpcsCheck{hcpcs_code}&redirect=false&ACA='
+    url2 = f'https://pfs.data.cms.gov/api/1/datastore/query?search=pricing_single_{hcpcs_code}&redirect=false&ACA='
 
     session = requests.Session()
     session.options(url1, headers=headers_options)
