@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS cpt_hcpcs_codes (
     codes_document jsonb NOT NULL
 );
 
-CREATE TABLE medicare_data (
+CREATE TABLE IF NOT EXISTS medicare_data (
     mac text,
     lnum text,
     state text,
