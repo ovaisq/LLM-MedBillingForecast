@@ -155,3 +155,79 @@ def db_get_comment_ids():
         comment_id_list.append(a_comment_id[0])
 
     return comment_id_list
+
+def get_hcpcs_locality_cost(hcpcs_code, locality_designation):
+    """_summary_
+
+    Args:
+        hcpcs_code (_type_): _description_
+        locality_designation (_type_): _description_
+    """
+
+    sql_query = f"""
+                select
+	                codes_document ->> 'sdesc' as short_description,
+	                codes_document ->> 'locality' as mac_locality,
+	                codes_document ->> 'modifier' as modifier,
+	                round(cast(codes_document ->> 'fac_price' as numeric), 2) as facility_price,
+	                round(cast(codes_document ->> 'nfac_price' as numeric), 2) as non_fasility_price,
+	                round(cast(codes_document ->> 'fac_limiting_charge' as numeric), 2) as facility_limiting_charge,
+	                round(cast(codes_document ->> 'nfac_limiting_charge' as numeric), 2)as non_facility_limiting_charge,
+	                codes_document ->> 'conv_fact' as conv_fact
+                from
+	                cpt_hcpcs_codes
+                where
+	                codes_document ->> 'hcpc' = '{hcpcs_code}'
+	                and codes_document ->> 'locality' = '{locality_designation}';
+                 """
+    costs = get_select_query_result_dicts(sql_query)
+    
+    return costs
+
+def get_pt_locality_and_codes(patient_document_id):
+    """
+
+    Args:
+        patient_document_id (_type_): _description_
+    """
+    
+    sql_query = f"""
+                SELECT 
+                    pd.patient_id,
+	                pd.patient_locality,
+                    jsonb_array_elements_text(pc.codes_document -> 'cpt' -> 'codes') AS cpt_code
+                FROM 
+                    public.patient_documents pd
+                JOIN 
+                    public.patient_codes pc ON pd.patient_document_id = pc.patient_document_id
+                WHERE 
+                    pd.patient_document_id = '{patient_document_id}';
+                """
+    locality_codes = get_select_query_result_dicts(sql_query)
+
+    # Initialize the result dictionary
+    result_dict = {}
+
+    for item in locality_codes:
+        patient_id = item['patient_id']
+        locality = item['patient_locality']
+        cpt_code = item['cpt_code']
+    
+        # If patient_id and locality are not yet in the result dictionary, initialize them
+        if (patient_id, locality) not in result_dict:
+            result_dict[(patient_id, locality)] = {'patient_id': patient_id, 'locality': locality, 'codes': []}
+    
+        # Append cpt_code to the codes list
+        result_dict[(patient_id, locality)]['codes'].append(cpt_code)
+
+    # Get the first item from the result dictionary
+    pt_locality_codes = list(result_dict.values())[0]
+
+    return pt_locality_codes
+#doc_id = 'aaf6b52080f87f01305a3de7f596e91354b3fec0969b0a870f560db9b11ba629667525285ab30886a51246035053e8211c7b7a75cd0d72a1ca4964785465764f'
+#doc = get_pt_locality_and_codes(doc_id)
+
+#for a_code in doc['codes']:
+#    print(a_code)
+#    est_costs = get_hcpcs_locality_cost(a_code, doc['locality'])
+#    print (est_costs)

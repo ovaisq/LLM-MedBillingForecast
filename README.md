@@ -73,6 +73,40 @@ graph TD;
 
 ```
 
+### Ollama-GPT graph
+```mermaid
+    %%{init: {'theme': 'forest', 'themeVariables': {'lineColor': 'Blue'}}}%%
+    graph LR
+        style DB fill:#a7e0f2,stroke:#13821a,stroke-width:3px
+
+        A((Get Visit Note
+        EMR/ADT))
+        B((Summarize
+        Visit Note))
+        C((Get Dignosis))
+        D((Get Diagnosis
+        ICD10 Codes))
+        DA(("Get 
+        ICD-10 Details"))
+        DB((*Get 
+        HCPCS 
+        Fee Schedule))
+        E((Get Diagnosis 
+        CPT/HCPCS
+        Codes))
+        F((Get Prescription))
+        G((Get Prescription 
+        CPT/HCPCS
+        Codes))
+
+    A --> B --> C --> D
+    D --> DA
+    C --> E
+    C --> F
+    F --> G
+    E --> DB
+```
+
 ### Detail Overview
 ```mermaid
 %%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'40px',"fontFamily": "Trebuchet MS"}}}%%

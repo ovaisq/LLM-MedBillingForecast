@@ -139,7 +139,8 @@ def analyze_visit_notes():
     sql_query = """SELECT
                         patient_note_id
                    FROM 
-                        patient_notes;
+                        patient_notes
+                   WHERE patient_note_id NOT IN (SELECT patient_note_id FROM patient_documents);
                 """
 
     all_visit_notes = get_select_query_result_dicts(sql_query)
@@ -367,7 +368,7 @@ if __name__ == "__main__":
     # non-production WSGI settings:
     #  port 5000, listen to local ip address, use ssl
     # in production we use gunicorn
-    app.run(port=5000,
+    app.run(port=5009,
             host='0.0.0.0',
             ssl_context=('cert.pem', 'key.pem'),
             debug=False) # not for production
