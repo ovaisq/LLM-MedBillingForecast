@@ -60,8 +60,10 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 from config import get_config
 from clincodeutils import extract_icd10_codes
 from clincodeutils import extract_cpt_codes
+from clincodeutils import extract_hcpcs_codes
 from clincodeutils import icd_10_code_details_list
 from clincodeutils import lookup_cpt_gpt
+from clincodeutils import lookup_hcpcs_gpt
 from database import insert_data_into_table
 from database import get_select_query_result_dicts
 from encryption import decrypt_text
@@ -154,7 +156,7 @@ def analyze_visit_note(visit_note_id):
     encrypt_analysis = CONFIG.getboolean('service', 'PATIENT_DATA_ENCRYPTION_ENABLED')
 
     sql_query = f"""SELECT
-                        patient_id, patient_note_id, patient_note
+                        patient_id, patient_note_id, patient_note, patient_note ->> 'locality' as patient_locality
                    FROM
                         patient_notes
                    WHERE patient_note_id = '{visit_note_id}';
@@ -163,13 +165,14 @@ def analyze_visit_note(visit_note_id):
     visit_notes = get_select_query_result_dicts(sql_query)
 
     for visit_note in visit_notes:
+        logging.info(visit_note['patient_note_id'][0:10])
         patient_id = visit_note['patient_id']
         patient_note_id = visit_note['patient_note_id']
 
         # decrypt patient note content
         content = decrypt_text(visit_note['patient_note']['note'])
 
-        prompt = "What Disease does this Patient Have? P is patient, D is Doctor"
+        prompt = "What disease does this patient have? P is patient, D is Doctor"
         summarized_obj = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
 
         if summarized_obj:
@@ -195,28 +198,29 @@ def analyze_visit_note(visit_note_id):
                                        )
 
                 if not encrypt_analysis:
-                    logging.error('URGENT: Patient Data Encryption disabled! \
+                    app.logger.error('URGENT: Patient Data Encryption disabled! \
                                 If spotted in Production logs, notify immediately!')
 
                 # construct patient data object for storage
                 patient_data_obj = {
-									'schema_version': '3',
-									'llm': llm,
-									'source': 'healthcare',
-									'category': 'patient',
-									'patient_id': patient_id,
-									'patient_note_id': patient_note_id,
-									'osce_note_summarized': summarized_obj['analysis'],
-									'analysis_document': analyzed_obj['analysis']
-								   }
+                                    'schema_version': '4',
+                                    'llm': llm,
+                                    'source': 'healthcare',
+                                    'category': 'patient',
+                                    'patient_id': patient_id,
+                                    'patient_note_id': patient_note_id,
+                                    'osce_note_summarized': summarized_obj['analysis'],
+                                    'analysis_document': analyzed_obj['analysis']
+                                   }
 
                 patient_analysis_data = {
-										 'timestamp': analyzed_obj['timestamp'],
-										 'patient_document_id': analyzed_obj['shasum_512'],
-										 'patient_id': patient_id,
-										 'patient_note_id': patient_note_id,
-										 'analysis_document': json.dumps(patient_data_obj)
-									    }
+                                         'timestamp': analyzed_obj['timestamp'],
+                                         'patient_document_id': analyzed_obj['shasum_512'],
+                                          'patient_locality' : visit_note['patient_locality'],
+                                         'patient_id': patient_id,
+                                         'patient_note_id': patient_note_id,
+                                         'analysis_document': json.dumps(patient_data_obj)
+                                        }
 
                 insert_data_into_table('patient_documents', patient_analysis_data)
                 return True
@@ -231,8 +235,10 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
     prompts = {
                'icd': 'What are the ICD codes for this diagnosis? ',
                'cpt': 'What are the CPT codes for this diagnosis? ',
+               'hcpcs': 'What are the HCPCS codes for this diagnosis? ',
                'prescription': 'What medication to prescribe for the diagnosis? ',
-               'prescription_cpt': 'What are the CPT codes for these prescriptions? '
+               'prescription_cpt': 'What are the CPT codes for these prescriptions? ',
+               'prescription_hcpcs': 'What are the HCPCS codes for these prescriptions? '
               }
 
     # adjust prompts if llm is 'meditron'
@@ -244,6 +250,9 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
 
     # do not encrypt
     cpt_obj = asyncio.run(prompt_chat(llm, prompts['cpt'] + analyzed_content, False))
+
+    # do not encrypt
+    hcpcs_obj = asyncio.run(prompt_chat(llm, prompts['hcpcs'] + analyzed_content, False))
 
     # do not encrypt
     prescription_obj = asyncio.run(
@@ -264,38 +273,60 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                                                    False
                                                   )
                                       )
+    # do not encrypt
+    prescription_hcpcs_obj = asyncio.run(
+                                         prompt_chat(
+                                                     llm,
+                                                     prompts['prescription_hcpcs'] +
+                                                     prescription_analysis,
+                                                     False
+                                                    )
+                                        )
 
     icd_10_code_details = icd_10_code_details_list(extract_icd10_codes(icd_obj['analysis']))
     prescription_cpt_details = lookup_cpt_gpt(extract_cpt_codes(prescription_cpt_obj['analysis']))
+    prescription_hcpcs_details = lookup_hcpcs_gpt(extract_hcpcs_codes(prescription_hcpcs_obj['analysis']))
+
+    hcpcs_codes = extract_hcpcs_codes(hcpcs_obj['analysis'])
 
     codes_document = {
-        'icd': {
-            'timestamp': serialize_datetime(icd_obj['timestamp']),
-            'codes': extract_icd10_codes(icd_obj['analysis']),
-            'details': icd_10_code_details
-        },
-        'cpt': {
-            'timestamp': serialize_datetime(cpt_obj['timestamp']),
-            'codes': extract_cpt_codes(cpt_obj['analysis']),
-            'details': lookup_cpt_gpt(extract_cpt_codes(cpt_obj['analysis']))
-        },
-        'prescription': {
-            'timestamp': serialize_datetime(prescription_obj['timestamp']),
-            'prescriptions': prescription_obj['analysis']
-        },
-        'prescription_cpt': {
-            'timestamp': serialize_datetime(prescription_cpt_obj['timestamp']),
-            'codes': extract_cpt_codes(prescription_cpt_obj['analysis']),
-            'details': prescription_cpt_details
-        }
-    }
+                      'icd': {
+                              'timestamp': serialize_datetime(icd_obj['timestamp']),
+                              'codes': extract_icd10_codes(icd_obj['analysis']),
+                              'details': icd_10_code_details
+                             },
+                      'cpt': {
+                              'timestamp': serialize_datetime(cpt_obj['timestamp']),
+                              'codes': extract_cpt_codes(cpt_obj['analysis']),
+                              'details': lookup_cpt_gpt(extract_cpt_codes(cpt_obj['analysis']))
+                             },
+                      'hcpcs': {
+                                'timestamp': serialize_datetime(hcpcs_obj['timestamp']),
+                                'codes': hcpcs_codes,
+                                'details': lookup_hcpcs_gpt(hcpcs_codes)
+                               },
+                      'prescription': {
+                                       'timestamp': serialize_datetime(prescription_obj['timestamp']),
+                                       'prescriptions': prescription_obj['analysis']
+                                      },
+                      'prescription_cpt': {
+                                           'timestamp': serialize_datetime(prescription_cpt_obj['timestamp']),
+                                           'codes': extract_cpt_codes(prescription_cpt_obj['analysis']),
+                                           'details': prescription_cpt_details
+                                          },
+                      'prescription_hcpcs': {
+                                             'timestamp': serialize_datetime(prescription_hcpcs_obj['timestamp']),
+                                             'codes': extract_cpt_codes(prescription_hcpcs_obj['analysis']),
+                                             'details': prescription_hcpcs_details
+                                            }
+                     }
 
     codes_data = {
-        'timestamp': serialize_datetime(ts_int_to_dt_obj()),
-        'patient_id': patient_id,
-        'patient_document_id': patient_document_id,
-        'codes_document': json.dumps(codes_document)
-    }
+                  'timestamp': serialize_datetime(ts_int_to_dt_obj()),
+                  'patient_id': patient_id,
+                  'patient_document_id': patient_document_id,
+                  'codes_document': json.dumps(codes_document)
+                 }
 
     insert_data_into_table('patient_codes', codes_data)
 
@@ -332,9 +363,6 @@ def get_patient_record(patient_id):
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO) # init logging
-    gunicorn_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
 
     # non-production WSGI settings:
     #  port 5000, listen to local ip address, use ssl

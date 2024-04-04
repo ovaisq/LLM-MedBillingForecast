@@ -41,8 +41,8 @@ def insert_data_into_table(table_name, data):
         #   data, one can write a method to safely update data
         #   while also preserving original data. For example use
         #   ON CONFLICT DO UPDATE. For now this'd do.
-        sql_query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders}) \
-                     ON CONFLICT DO NOTHING;"
+        sql_query = f"""INSERT INTO {table_name} ({columns}) VALUES ({placeholders}) \
+                     ON CONFLICT DO NOTHING;"""
         cur.execute(sql_query, list(data.values()))
         conn.commit()
     except psycopg2.Error as e:
@@ -84,7 +84,7 @@ def get_new_data_ids(table_name, unique_column, reddit_data):
         return the diff from the api
     """
 
-    query = f"SELECT {unique_column} FROM {table_name} GROUP BY {unique_column};"
+    query = f"""SELECT {unique_column} FROM {table_name} GROUP BY {unique_column};"""
 
     data_ids_db = [] # array to hold ids from database table
     data_ids_reddit = [] # arrary to hold ids from reddit api call

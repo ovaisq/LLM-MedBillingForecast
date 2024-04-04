@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS patient_documents (
     timestamp timestamp with time zone NOT NULL,
     patient_document_id text UNIQUE NOT NULL,
     patient_id text NOT NULL,
+	patient_locality varchar,
     patient_note_id text NOT NULL,
     analysis_document jsonb NOT NULL
 );

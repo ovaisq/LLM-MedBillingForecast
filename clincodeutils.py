@@ -24,20 +24,22 @@ def extract_cpt_codes(text):
     lookup_pattern = r'\b\d{5}\b'
     return re.findall(lookup_pattern, text)
 
+def extract_hcpcs_codes(text):
+    """Extract hcpcs codes from a string
+    """
+
+    lookup_pattern = r'\b\d{5}\b'
+    return re.findall(lookup_pattern, text)
+
 def icd_10_code_details(icd_10_code):
     """ICD-10 code details
     """
 
     try:
-        full_details =  icddetails.get_full_data(icd_10_code)
-        icd_details_obj = {
-                            'code' : icd_10_code,
-                            'full_data' : full_details.replace(':\n',':'),
-                            'billable' : icdbilling.find(icd_10_code).billable
-                          }
-
-        return icd_details_obj
-    except ValueError as e:
+        icd_details_obj = lookup_icd_gpt(icd_10_code)
+        return icd_details_obj['analysis']
+    except (ValueError, AttributeError) as e:
+        logging.error('Error: %s, %s', icd_10_code, e.args[0])
         return e.args[0]
 
 def icd_10_code_details_list(list_of_icd_10_codes):
@@ -51,6 +53,36 @@ def icd_10_code_details_list(list_of_icd_10_codes):
         details_list.append(details)
 
     return details_list
+
+def lookup_icd_gpt(icd_code):
+    """Lookup icd codes using llama2
+    """
+
+    code_lookup_prompt = f"""Response MUST BE JSON ONLY, no additional comments. Tell me about ICD-10 code {icd_code}, is it billable? Respond in JSON only. Use the following JSON template, \
+    the JSON needs to be python compliant where boolean "true" needs to be represented as True and \
+    "false" as False. \
+    {{
+        "code": "icd-10 code goes here",
+        "billable": "BOOLEAN",
+        "full_data": {{
+            "short_description": "short description goes here",
+            "long_description": "long description goes here",
+            "billing_guidelines": {{
+                "insurance_company": {{
+                    "reimbursement_rate": "REIMBURSEMENT RATE from the insurance company goes here",
+                    "billing_instructions": "billing instructions from the insurance company go here"
+                }},
+                "medical_provider": {{
+                    "reimbursement_rate": "REIMBURSEMENT RATE from the medical provider goes here",
+                    "billing_instructions": "billing instructions from the medical provider go here"
+                }}
+            }}
+        }}
+    }}"""
+
+    icd_details = asyncio.run(prompt_chat('llama2', code_lookup_prompt + '', False))
+
+    return icd_details
 
 def lookup_cpt_gpt(cpt_code_list):
     """Lookup cpt codes using llama2
@@ -67,3 +99,61 @@ def lookup_cpt_gpt(cpt_code_list):
         cpt_details.append(result['analysis'])
 
     return cpt_details
+
+def lookup_hcpcs_gpt(hcpcs_code_list):
+    """Lookup hcpcs codes using llama2
+    """
+
+    hcpcs_details = []
+    for hcpcs_code in hcpcs_code_list:
+        code_lookup_prompt = f"""Explain HCPCS code {hcpcs_code}. Respond with JSON only. Keys cpt is the code number, \
+        details is a dictionary with nested keys short_description and long_description. JSON template {{"hcpcs": "actual \
+        hcpcs code", "details": {{"short_description": "short description goes here", "long_description": "long \
+        description goes here"}}}}"""
+
+        result = asyncio.run(prompt_chat('llama2', code_lookup_prompt + '', False))
+        hcpcs_details.append(result['analysis'])
+
+    return hcpcs_details
+
+def get_icd_billables(patient_id):
+    """Get billable information for a cpt code for a given patient
+    """
+
+    sql_query = f"""
+                    SELECT
+                        "timestamp",
+                        patient_id,
+                        patient_document_id,
+                        icd_code->>'code' AS icd_code,
+                        icd_code->>'billable' AS billable
+                    FROM
+                        patient_codes,
+                        LATERAL jsonb_array_elements(codes_document->'icd'->'details') AS icd_code
+                    WHERE
+                        codes_document->'icd'->>'codes' IS NOT NULL
+                        AND icd_code ->> 'code' IS NOT NULL;
+                 """
+    pass
+
+def get_cpt_fees(hcpcs_code, mac_locality):
+    """Get locality based fee schedule for a given hcpcs code
+    """
+
+    sql_query = f"""
+                    SELECT
+                        codes_document ->> 'sdesc' AS short_description,
+                        codes_document ->> 'locality' AS mac_locality,
+                        codes_document ->> 'modifier' AS modifier,
+                        codes_document ->> 'fac_price' AS facility_price,
+                        codes_document ->> 'nfac_price' AS non_fasility_price,
+                        codes_document ->> 'fac_limiting_charge' AS facility_limiting_charge,
+                        codes_document ->> 'nfac_limiting_charge' AS non_facility_limiting_charge,
+                        codes_document ->> 'conv_fact' AS conv_fact
+                    FROM
+                        cpt_hcpcs_codes
+                    WHERE
+                        codes_document ->> 'hcpc' = '{hcpcs_code}'
+                        AND codes_document ->> 'locality' = '{mac_locality}';
+                 """
+    pass
