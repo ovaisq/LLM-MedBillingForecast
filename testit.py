@@ -50,7 +50,7 @@ class TestFlaskApp(unittest.TestCase):
 
         # Define test data
         test_data = {
-            'api_key': 'ssVzEB45OvXTtzQ9HeXAdSwYQTjXYjh_HSknN3vY9a37hZYXkltH2pz7WNp7DPka'
+            'api_key': SRVC_SHARED_SECRET 
         }
 
         headers = {
