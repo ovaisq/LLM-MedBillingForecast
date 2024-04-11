@@ -189,6 +189,15 @@ def get_pt_locality_and_codes(patient_document_id):
 
     Args:
         patient_document_id (_type_): _description_
+
+    Example:
+        #doc_id = 'aaf6b52080f87f01305a3de7f596e91354b3fec0969b0a870f560db9b11ba629667525285ab30886a51246035053e8211c7b7a75cd0d72a1ca4964785465764f'
+        #doc = get_pt_locality_and_codes(doc_id)
+
+        #for a_code in doc['codes']:
+        #    print(a_code)
+        #    est_costs = get_hcpcs_locality_cost(a_code, doc['locality'])
+        #    print (est_costs)
     """
     
     sql_query = f"""
@@ -224,10 +233,3 @@ def get_pt_locality_and_codes(patient_document_id):
     pt_locality_codes = list(result_dict.values())[0]
 
     return pt_locality_codes
-#doc_id = 'aaf6b52080f87f01305a3de7f596e91354b3fec0969b0a870f560db9b11ba629667525285ab30886a51246035053e8211c7b7a75cd0d72a1ca4964785465764f'
-#doc = get_pt_locality_and_codes(doc_id)
-
-#for a_code in doc['codes']:
-#    print(a_code)
-#    est_costs = get_hcpcs_locality_cost(a_code, doc['locality'])
-#    print (est_costs)
