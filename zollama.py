@@ -220,6 +220,7 @@ def analyze_visit_note(visit_note_id):
                                           'patient_locality' : visit_note['patient_locality'],
                                          'patient_id': patient_id,
                                          'patient_note_id': patient_note_id,
+                                         #json.loads this when read back from database
                                          'analysis_document': json.dumps(patient_data_obj)
                                         }
 
@@ -326,7 +327,8 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
                   'timestamp': serialize_datetime(ts_int_to_dt_obj()),
                   'patient_id': patient_id,
                   'patient_document_id': patient_document_id,
-                  'codes_document': json.dumps(codes_document)
+                  #json.loads this when read back from database
+                  'codes_document': json.dumps(codes_document) 
                  }
 
     insert_data_into_table('patient_codes', codes_data)

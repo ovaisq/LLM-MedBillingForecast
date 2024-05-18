@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
+import ast
 import asyncio
-import json
 import logging
 import re
-import requests
 from gptutils import prompt_chat
 import simple_icd_10_cm as icddetails
 import icd10 as icdbilling
@@ -49,43 +48,44 @@ def icd_10_code_details_list(list_of_icd_10_codes):
     details_list = []
 
     for icd_10_code in list_of_icd_10_codes:
-        details = icd_10_code_details(icd_10_code)
+        # should be dictionary object
+        detail = icd_10_code_details(icd_10_code).replace('  ','').replace('\n','')
+        details = ast.literal_eval(detail)
         details_list.append(details)
 
     return details_list
 
 def lookup_icd_gpt(icd_code):
-    """Lookup icd codes using llama2
+    """Lookup icd codes using llama3
     """
 
-    code_lookup_prompt = f"""Response MUST BE JSON ONLY, no additional comments. Tell me about ICD-10 code {icd_code}, is it billable? Respond in JSON only. Use the following JSON template, \
+    code_lookup_prompt = f"""Response MUST BE JSON ONLY, no additional comments. Tell me about ICD-10 code {icd_code}, is it billable? Respond in JSON only. Use the following python JSON template, \
     the JSON needs to be python compliant where boolean "true" needs to be represented as True and \
-    "false" as False. \
-    {{
-        "code": "icd-10 code goes here",
-        "billable": "BOOLEAN",
-        "full_data": {{
-            "short_description": "short description goes here",
-            "long_description": "long description goes here",
-            "billing_guidelines": {{
-                "insurance_company": {{
-                    "reimbursement_rate": "REIMBURSEMENT RATE from the insurance company goes here",
-                    "billing_instructions": "billing instructions from the insurance company go here"
+    "false" as False: \
+     {{'code': 'icd-10 code goes here',
+        'billable': BOOLEAN,
+        'full_data': {{
+            'short_description': 'short description goes here',
+            'long_description': 'long description goes here',
+            'billing_guidelines': {{
+                'insurance_company': {{
+                    'reimbursement_rate': 'REIMBURSEMENT RATE from the insurance company goes here',
+                    'billing_instructions': 'billing instructions from the insurance company go here'
                 }},
-                "medical_provider": {{
-                    "reimbursement_rate": "REIMBURSEMENT RATE from the medical provider goes here",
-                    "billing_instructions": "billing instructions from the medical provider go here"
+                'medical_provider': {{
+                    'reimbursement_rate': 'REIMBURSEMENT RATE from the medical provider goes here',
+                    'billing_instructions': 'billing instructions from the medical provider go here'
                 }}
             }}
-        }}
-    }}"""
+        }}}}
+    """
 
-    icd_details = asyncio.run(prompt_chat('llama2', code_lookup_prompt + '', False))
+    icd_details = asyncio.run(prompt_chat('llama3', code_lookup_prompt + '', False))
 
     return icd_details
 
 def lookup_cpt_gpt(cpt_code_list):
-    """Lookup cpt codes using llama2
+    """Lookup cpt codes using llama3
     """
 
     cpt_details = []
@@ -95,13 +95,13 @@ def lookup_cpt_gpt(cpt_code_list):
         cpt code", "details": {{"short_description": "short description goes here", "long_description": "long \
         description goes here"}}}}"""
 
-        result = asyncio.run(prompt_chat('llama2', code_lookup_prompt + '', False))
+        result = asyncio.run(prompt_chat('llama3', code_lookup_prompt + '', False))
         cpt_details.append(result['analysis'])
 
     return cpt_details
 
 def lookup_hcpcs_gpt(hcpcs_code_list):
-    """Lookup hcpcs codes using llama2
+    """Lookup hcpcs codes using llama3
     """
 
     hcpcs_details = []
@@ -111,7 +111,7 @@ def lookup_hcpcs_gpt(hcpcs_code_list):
         hcpcs code", "details": {{"short_description": "short description goes here", "long_description": "long \
         description goes here"}}}}"""
 
-        result = asyncio.run(prompt_chat('llama2', code_lookup_prompt + '', False))
+        result = asyncio.run(prompt_chat('llama3', code_lookup_prompt + '', False))
         hcpcs_details.append(result['analysis'])
 
     return hcpcs_details
@@ -121,18 +121,24 @@ def get_icd_billables(patient_id):
     """
 
     sql_query = f"""
-                    SELECT
-                        "timestamp",
-                        patient_id,
-                        patient_document_id,
-                        icd_code->>'code' AS icd_code,
-                        icd_code->>'billable' AS billable
-                    FROM
-                        patient_codes,
-                        LATERAL jsonb_array_elements(codes_document->'icd'->'details') AS icd_code
-                    WHERE
-                        codes_document->'icd'->>'codes' IS NOT NULL
-                        AND icd_code ->> 'code' IS NOT NULL;
+				select
+					pc.patient_id,
+					icd_detail->>'code' as code,
+					(icd_detail->>'billable')::boolean as billable,
+					icd_detail->'full_data'->>'short_description' as short_description,
+					icd_detail->'full_data'->'billing_guidelines'->'medical_provider'->>'reimbursement_rate' as medical_provider_reimbursement_rate,
+					icd_detail->'full_data'->'billing_guidelines'->'insurance_company'->>'reimbursement_rate' as insurance_company_reimbursement_rate,
+					pd.patient_locality
+				from
+					patient_codes pc
+				join
+					jsonb_array_elements(pc.codes_document->'icd'->'details') as icd_detail on
+					true
+				join
+					patient_documents pd on
+					pc.patient_id = pd.patient_id
+				where
+					pc.codes_document ? 'icd';
                  """
     pass
 
