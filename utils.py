@@ -173,15 +173,45 @@ def parse_fees_from_text(input_text):
 
 def calculate_medical_costs(patient_id):
     """Calculate and display fees for medical services related to a patient
-        with a given patient_id. It does this by retrieving estimates from an
-        ICD (International Classification of Diseases) source, parsing these
-        estimates into fees.
+       with a given patient_id. It does this by retrieving estimates from an
+       ICD (International Classification of Diseases) source, parsing these
+       estimates into fees.
     """
 
-    costs = get_icd_billable_estimates(patient_id)
-    for cost in costs:
+    def parse_and_calculate_estimates(cost):
+        """Parse fees from text and calculate the average estimates for medical
+            and insurance, if available.
+        """
+
         medical = parse_fees_from_text(cost['medical_provider_reimbursement_rate'])
         insurance = parse_fees_from_text(cost['insurance_company_reimbursement_rate'])
-        if medical['min_val'] and medical['max_val']:
-            print(cost['code'], locale.atof(medical['min_val'].strip('$')), locale.atof(medical['max_val'].strip('$')))
-            print(cost['code'], locale.atof(insurance['min_val'].strip('$')), locale.atof(medical['max_val'].strip('$')))
+
+        def get_average_estimate(fees):
+            """Calculate the average estimate from min and max values, if they
+                exist.
+            """
+
+            if fees['min_val'] and fees['max_val']:
+                min_val = locale.atof(fees['min_val'].strip('$'))
+                max_val = locale.atof(fees['max_val'].strip('$'))
+                return (min_val + max_val) / 2
+            return None
+
+        medical_estimate = get_average_estimate(medical)
+        insurance_estimate = get_average_estimate(insurance)
+
+        return medical_estimate, insurance_estimate
+
+    costs = get_icd_billable_estimates(patient_id)
+
+    for cost in costs:
+        medical_estimate, insurance_estimate = parse_and_calculate_estimates(cost)
+
+        if medical_estimate is not None:
+            print(cost['code'])
+            print('medical_estimate', '${:,.2f}'.format(medical_estimate))
+            print('insurance_estimate', '${:,.2f}'.format(insurance_estimate))
+
+
+
+calculate_medical_costs('am1jc0r0mo')
