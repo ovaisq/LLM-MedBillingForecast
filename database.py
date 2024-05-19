@@ -151,19 +151,51 @@ def get_pt_locality_and_codes(patient_document_id):
 
     return pt_locality_codes
 
-def icd_cost_estimates():
-    """Get cost estimates for ICD Codes
+def get_icd_billable_estimates(patient_id):
+    """Get billable information for icd codes for a given patient
     """
 
-    sql_query = """
+    sql_query = f"""
                 SELECT
-                    (jsonb_array_elements(codes_document->'icd'->'details')->'code') AS icd_code,
-                    (jsonb_array_elements(codes_document->'icd'->'details')->'full_data'->'billing_guidelines'->'medical_provider'->'reimbursement_rate') AS reimbursement_rate
+                    pc.patient_id,
+                    icd_detail->>'code' AS code,
+                    (icd_detail->>'billable')::boolean AS billable,
+                    icd_detail->'full_data'->>'short_description' AS short_description,
+                    icd_detail->'full_data'->'billing_guidelines'->'medical_provider'->>'reimbursement_rate' AS medical_provider_reimbursement_rate,
+                    icd_detail->'full_data'->'billing_guidelines'->'insurance_company'->>'reimbursement_rate' AS insurance_company_reimbursement_rate,
+                    pd.patient_locality
                 FROM
-                     patient_codes
+                    patient_codes pc
+                JOIN
+                    jsonb_array_elements(pc.codes_document->'icd'->'details') AS icd_detail ON true
+                JOIN
+                    patient_documents pd ON pc.patient_id = pd.patient_id
                 WHERE
-                    codes_document->'icd'->'details' IS NOT NULL;
-                """
+                    pc.codes_document ? 'icd'
+                    AND pc.patient_id = '{patient_id}';
+                 """
 
     costs = get_select_query_result_dicts(sql_query)
     return costs
+
+def get_cpt_fees(hcpcs_code, mac_locality):
+    """Get locality based fee schedule for a given hcpcs code
+    """
+
+    sql_query = f"""
+                    SELECT
+                        codes_document ->> 'sdesc' AS short_description,
+                        codes_document ->> 'locality' AS mac_locality,
+                        codes_document ->> 'modifier' AS modifier,
+                        codes_document ->> 'fac_price' AS facility_price,
+                        codes_document ->> 'nfac_price' AS non_fasility_price,
+                        codes_document ->> 'fac_limiting_charge' AS facility_limiting_charge,
+                        codes_document ->> 'nfac_limiting_charge' AS non_facility_limiting_charge,
+                        codes_document ->> 'conv_fact' AS conv_fact
+                    FROM
+                        cpt_hcpcs_codes
+                    WHERE
+                        codes_document ->> 'hcpc' = '{hcpcs_code}'
+                        AND codes_document ->> 'locality' = '{mac_locality}';
+                 """
+    pass

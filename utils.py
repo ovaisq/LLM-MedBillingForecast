@@ -2,13 +2,18 @@
 # ©2024, Ovais Quraishi
 
 import datetime
+import json
+import locale
 import logging
 import time
 import random
 import requests
 import string
 from datetime import datetime as DT
+from database import get_icd_billable_estimates
 
+# set the locale English (United States)
+locale.setlocale(locale.LC_ALL, 'en_US')
 
 # substrings to be replaced
 TBR = ["As an AI language model, I don't have personal preferences or feelings. However,",
@@ -134,35 +139,49 @@ def parse_fees_from_text(input_text):
     """Parse fees and frequency rates from a list of text descriptions.
     """
 
-    for text in input_text:
-        costs = []
-        frequency_parts = []
+    costs = []
+    frequency_parts = []
 
-        words = text.split()
-        for word in words:
-            if word.startswith('$'):
-                if '-' in word and len(word) > 1:
-                    min_cost, max_cost = word.split('-')
-                    costs.append(min_cost)
-                    costs.append(max_cost)
-                else:
-                    costs.append(word)
-            elif word == '-':
-                frequency_parts.append(' ')
+    words = input_text.split()
+
+    for word in words:
+        if word.startswith('$'):
+            if '-' in word and len(word) > 1:
+                min_cost, max_cost = word.split('-')
+                costs.append(min_cost)
+                costs.append(max_cost)
             else:
-                frequency_parts.append(word)
+                costs.append(word)
+        elif word == '-':
+            frequency_parts.append(' ')
+        else:
+            frequency_parts.append(word)
 
-        # both min and max values must be present
-        if len(costs) == 1:
-            costs.append(costs[0])
+    # both min and max values must be present
+    if len(costs) == 1:
+        costs.append(costs[0])
 
-        # parsed object
-        parsed_obj = {
-					  'original_text': text,
-					  'min_val': costs[0] if costs else '',
-					  'max_val': costs[1] if len(costs) > 1 else '',
-					  'frequency_rate': ' '.join(frequency_parts).replace('  ', ' ').strip() if frequency_parts else ''
-					 }
+    # parsed object
+    parsed_obj = {
+                    'original_text': input_text,
+                    'min_val': costs[0] if costs else '',
+                    'max_val': costs[1] if len(costs) > 1 else '',
+                    'frequency_rate': ' '.join(frequency_parts).replace('  ', ' ').strip() if frequency_parts else ''
+                    }
 
-        # Print the parsed object in JSON format
-        print(json.dumps(parsed_obj, indent=4))
+    return json.loads(json.dumps(parsed_obj))
+
+def calculate_medical_costs(patient_id):
+    """Calculate and display fees for medical services related to a patient
+        with a given patient_id. It does this by retrieving estimates from an
+        ICD (International Classification of Diseases) source, parsing these
+        estimates into fees.
+    """
+
+    costs = get_icd_billable_estimates(patient_id)
+    for cost in costs:
+        medical = parse_fees_from_text(cost['medical_provider_reimbursement_rate'])
+        insurance = parse_fees_from_text(cost['insurance_company_reimbursement_rate'])
+        if medical['min_val'] and medical['max_val']:
+            print(cost['code'], locale.atof(medical['min_val'].strip('$')), locale.atof(medical['max_val'].strip('$')))
+            print(cost['code'], locale.atof(insurance['min_val'].strip('$')), locale.atof(medical['max_val'].strip('$')))
