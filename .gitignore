@@ -2,4 +2,7 @@ setup.config
 sonar_it.sh
 *.pem
 *.key
+*.p12
+*.crt
+*.zip
 __pycache__
