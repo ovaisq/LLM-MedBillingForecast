@@ -20,29 +20,28 @@ graph TD;
   Notes Text")
   end
   subgraph Zollama[ ]
-    ZZ(("`**ZOllama
-    &nbsp&nbsp&nbsp&nbspService&nbspAPI**`"&nbsp&nbsp&nbsp
-    Debian 12 VM
-    &nbsp&nbsp&nbsp4 vCPU, 2GB RAM&nbsp&nbsp&nbsp ))
+    ZZ(("`**Billing 
+    Projection
+    Service API**`"
+    Docker ))
   end
-  subgraph Load_Balancer["Load Balancer"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp]
+  subgraph Load_Balancer["Load Balancer"]
     Nginx["haproxy
-    Debian 12
-    4 vCPU, 2GB RAM"]
+    ESXi VM"]
   end
   
-  subgraph Nodes["Ollama Nodes"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp]
-    Node1[MacOS Sonoma 14.4
+  subgraph Nodes["Ollama Nodes"]
+    Node1[MacOS Sequoia 15.1
     MacBook Pro M1 Max
     32GB RAM]
-    Node2[Debian 12
-    16 Cores
-    48GB RAM
-    nVidia GTX 1070ti 8GB VRAM]
+    Node2[Debian 12 ESXi VM
+    8 vCPU
+    24GB RAM
+    2 x NVIDIA RTX 3060 12GB VRAM]
     Node3[Debian 12 VM
-    16 vCPU
+    8 vCPU
     32GB RAM
-    nVidia RTX 3060 12GB VRAM]
+    2 x NVIDIA RTX 4060ti 16GB VRAM]
   end
   
   Nginx -- RR --> Node1
@@ -107,9 +106,9 @@ graph TD;
     E --> DB
 ```
 
-### Detail Overview
+### Detailed Overview
 ```mermaid
-%%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'40px',"fontFamily": "Trebuchet MS"}}}%%
+%%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'28px',"fontFamily": "Trebuchet MS"}}}%%
 flowchart TD
     style PV fill:#fff
     style ZZ fill:#a7e0f2,stroke:#13821a,stroke-width:4px
@@ -122,9 +121,11 @@ flowchart TD
     style Medicare fill:#fff,stroke:#13821a,stroke-width:4px
 
     classDef subgraph_padding fill:none,stroke:none
-    EMRADT["POLL&nbspADT/EMR&nbspData"]
-    ZZ(("`**ZOllama
-    &nbsp&nbsp&nbsp&nbspService&nbspAPI**`"&nbsp&nbsp&nbsp))
+    EMRADT["POLL
+    ADT/EMR Data"]
+    ZZ(("`**Billing Revenue 
+    projection 
+    Service API**`"))
 
     EMRADT ==> PV ==> ZZ ==> PVO
     PVO ==> OLLAMA
@@ -135,7 +136,7 @@ flowchart TD
     RM <==> PSQL
 
 
-    subgraph PV["Patient&nbspVitals"]
+    subgraph PV["Patient Vitals"]
         subgraph blank2[ ]
             PVN("Doctor Patient
             Visit Note
@@ -144,7 +145,7 @@ flowchart TD
         end
     end
 
-    subgraph LocalEnv["`**Local&nbspEnvironment**`"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp]
+    subgraph LocalEnv["`**Local Environment**`"]
         subgraph blank[ ]
             direction TB
             PSQL[("`**PostgreSQL**`")]
@@ -154,7 +155,7 @@ flowchart TD
             subgraph RM["RCM
             Workflows"]
             end
-            subgraph PVO["Original&nbspPatient&nbspNote"]
+            subgraph PVO["Original Patient Note"]
                 direction LR
                 subgraph blank3[ ]
                     direction LR
@@ -185,7 +186,7 @@ flowchart TD
                 Medicare
               end
             end
-            subgraph EPPD["Processed&nbspPatient&nbspData"]
+            subgraph EPPD["Processed Patient Data"]
                 direction TB
                 subgraph blank5[ ]
                     subgraph JSON
@@ -196,7 +197,7 @@ flowchart TD
                     end
                 end
             end
-            subgraph PPD["Processed&nbspPatient&nbspData"]
+            subgraph PPD["Processed Patient Data"]
                 direction TB
                 subgraph blank9[ ]
                     subgraph AJSON["JSON"]
