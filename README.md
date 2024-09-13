@@ -126,13 +126,13 @@ flowchart TD
     ZZ(("`**ZOllama
     &nbsp&nbsp&nbsp&nbspService&nbspAPI**`"&nbsp&nbsp&nbsp))
 
-    EMRADT ==> PV ====> ZZ ===> PVO
-    PVO ====> OLLAMA
-    Med ===> PPD ==> BILLING ==Un-Encrypted=====> PSQL
-    Med ==> EPPD ==Encrypted=====> PSQL
-    Summary ===> Med
-    BI <=====> PSQL
-    RM <=====> PSQL
+    EMRADT ==> PV ==> ZZ ==> PVO
+    PVO ==> OLLAMA
+    Med ==> PPD ==> BILLING ==Un-Encrypted==> PSQL
+    Med ==> EPPD ==Encrypted==> PSQL
+    Summary ==> Med
+    BI <==> PSQL
+    RM <==> PSQL
 
 
     subgraph PV["Patient&nbspVitals"]
