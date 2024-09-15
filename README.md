@@ -108,7 +108,7 @@ graph TD;
 
 ### Detailed Overview
 ```mermaid
-%%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue', 'fontSize':'28px',"fontFamily": "Trebuchet MS"}}}%%
+%%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue',"fontFamily": "Trebuchet MS"}}}%%
 flowchart TD
     style PV fill:#fff
     style ZZ fill:#a7e0f2,stroke:#13821a,stroke-width:4px
