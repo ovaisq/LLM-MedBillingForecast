@@ -214,4 +214,9 @@ def calculate_medical_costs(patient_id):
 
 
 
-#DEBUG calculate_medical_costs('am1jc0r0mo')
+#DEBUG 
+#print ('Billing Estimate for patient am1jc0r0mo')
+#calculate_medical_costs('am1jc0r0mo')
+
+#print ('Billing Estimate for patient jy5aaylsvm')
+#calculate_medical_costs('jy5aaylsvm')
