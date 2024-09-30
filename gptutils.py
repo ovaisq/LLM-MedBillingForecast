@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Ollama-GPT module
+    ©2024, Ovais Quraishi
 """
 
 import hashlib

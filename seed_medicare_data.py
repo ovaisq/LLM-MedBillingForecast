@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Seed Medicare locality data
+    ©2024, Ovais Quraishi
 """
 
 import csv

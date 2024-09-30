@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Seed data from anonymized OSCE notes saved as text files.
+    ©2024, Ovais Quraishi
 """
 
 import hashlib

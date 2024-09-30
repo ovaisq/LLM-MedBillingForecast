@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Collect Fee Schedules for CPT/HCPCS codes
+    ©2024, Ovais Quraishi
 """
 
 import hashlib
