@@ -57,7 +57,7 @@ def icd_10_code_details_list(list_of_icd_10_codes):
     return details_list
 
 def lookup_icd_gpt(icd_code):
-    """Lookup icd codes using llama3
+    """Lookup icd codes using llama3.1
     """
 
     code_lookup_prompt = f"""Response MUST BE JSON ONLY, no additional comments. Tell me about ICD-10 code {icd_code}, is it billable? Respond in JSON only. Use the following python JSON template, \
@@ -81,12 +81,12 @@ def lookup_icd_gpt(icd_code):
         }}}}
     """
 
-    icd_details = asyncio.run(prompt_chat('llama3', code_lookup_prompt + '', False))
+    icd_details = asyncio.run(prompt_chat('llama3.1', code_lookup_prompt + '', False))
 
     return icd_details
 
 def lookup_cpt_gpt(cpt_code_list):
-    """Lookup cpt codes using llama3
+    """Lookup cpt codes using llama3.1
     """
 
     cpt_details = []
@@ -96,13 +96,13 @@ def lookup_cpt_gpt(cpt_code_list):
         cpt code", "details": {{"short_description": "short description goes here", "long_description": "long \
         description goes here"}}}}"""
 
-        result = asyncio.run(prompt_chat('llama3', code_lookup_prompt + '', False))
+        result = asyncio.run(prompt_chat('llama3.1', code_lookup_prompt + '', False))
         cpt_details.append(result['analysis'])
 
     return cpt_details
 
 def lookup_hcpcs_gpt(hcpcs_code_list):
-    """Lookup hcpcs codes using llama3
+    """Lookup hcpcs codes using llama3.1
     """
 
     hcpcs_details = []
@@ -112,7 +112,7 @@ def lookup_hcpcs_gpt(hcpcs_code_list):
         hcpcs code", "details": {{"short_description": "short description goes here", "long_description": "long \
         description goes here"}}}}"""
 
-        result = asyncio.run(prompt_chat('llama3', code_lookup_prompt + '', False))
+        result = asyncio.run(prompt_chat('llama3.1', code_lookup_prompt + '', False))
         hcpcs_details.append(result['analysis'])
 
     return hcpcs_details
