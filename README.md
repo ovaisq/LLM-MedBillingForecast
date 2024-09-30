@@ -2,7 +2,7 @@
 
 ### General Overview
 ```mermaid
-%%{init: {'theme': 'forest'}}%%
+%%{init: {'theme': 'forest','themeVariables': {'lineColor': 'Blue'}}}%%
 graph TD;
   style ZZ fill:#a7e0f2,stroke:#13821a,stroke-width:4px
   style DataPoll fill:#a7e0f2,stroke:#13821a,stroke-width:4px
@@ -108,7 +108,7 @@ graph TD;
 
 ### Detailed Overview
 ```mermaid
-%%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue',"fontFamily": "Trebuchet MS"}}}%%
+%%{init: {'theme': 'base', "loglevel":1,'themeVariables': {'lineColor': 'Blue'}}}%%
 flowchart TD
     style PV fill:#fff
     style ZZ fill:#a7e0f2,stroke:#13821a,stroke-width:4px
