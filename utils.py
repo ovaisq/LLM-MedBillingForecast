@@ -214,4 +214,4 @@ def calculate_medical_costs(patient_id):
 
 
 
-calculate_medical_costs('am1jc0r0mo')
+#DEBUG calculate_medical_costs('am1jc0r0mo')
