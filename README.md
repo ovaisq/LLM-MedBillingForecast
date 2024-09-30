@@ -420,6 +420,7 @@ Environment="OLLAMA_HOST=0.0.0.0"
     password=
 
     [service]
+    SRVC_NAME=
     JWT_SECRET_KEY=
     SRVC_SHARED_SECRET=
     IDENTITY=
