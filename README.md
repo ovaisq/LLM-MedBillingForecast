@@ -492,11 +492,15 @@ https://127.0.0.1:5001/login | jq -r .access_token) \
 #### Database Schema
 ![Database Schema](database.png)
 
-#### llama-gpt VM config 
+#### Ollama-gpt VM config 
 
-*nVidia GTX-1070i 8GB in Passthrough Mode*
+**2 x RTX 3060 12GB VRAM each in Passthrough Mode**
 
-![llama-gpt-vm](llama-gpt-vm.png)
+![llama-gpt-vm](llama-gpt-vm-1.png)
+
+**2 x RTX 4060ti 16GB VRAM each in Passthrough Mode**
+
+![llama-gpt-vm](llama-gpt-vm-2.png)
 
 
 #### PostgreSQL VM config
