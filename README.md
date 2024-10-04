@@ -1,4 +1,4 @@
-## ZOLLAMA-GPT
+## Medical Cost Forecasting using LLMs
 
 ### General Overview
 ```mermaid
