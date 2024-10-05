@@ -1,6 +1,10 @@
 ## Medical Cost Forecasting using LLMs
 
 ### General Overview
+This setup aims to provide near-real-time AgenticAI assistance. Agents commence the process of generating guesses immediately after a patient doctor visit concludes, before a care provider has started entering summaries, diagnoses, and ICD codes. This initiative is intended to eliminate the need for manual collation tasks at the end of each day, shift, or month. Real-time access to the billing forecast and the actual amount billed up to that point is provided to back-office staff.
+
+In this scenario, agents swiftly take the visit note, often even faster, and proceed to a simulation of note summarization and diagnosis. Subsequently, they provide prescriptions and lab work recommendations based on the diagnosis, while simultaneously checking the fee schedule based on the medical insurance coverage, which may include a single provider or a combination of (Medicare, Medical, etc.). As the care provider walks through the actual workflow, agents learn, correct, or update their initial guesses. This process repeats itself.
+
 ```mermaid
 %%{init: {'theme': 'forest','themeVariables': {'lineColor': 'Blue'}}}%%
 graph TD;
