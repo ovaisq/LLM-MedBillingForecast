@@ -48,30 +48,30 @@ graph TD;
     2 x NVIDIA RTX 4060ti 16GB VRAM]
   end
   
-  Nginx -- RR --> Node1
-  Nginx -- RR --> Node2
-  Nginx -- RR --> Node3
-  ZZ --> Nginx
-  PatientData --> DP <--> PSQL
-  Client --> ZZ
-  Nodes --> PSQL
-  ZZ <--> PSQL
-  PSQL --- JSONB["
+  Nginx == RR ==> Node1
+  Nginx == RR ==> Node2
+  Nginx == RR ==> Node3
+  ZZ ==> Nginx
+  PatientData ==> DP <==> PSQL
+  Client ==> ZZ
+  Nodes ==> PSQL
+  ZZ <==> PSQL
+  PSQL === JSONB["
   Indexed
   JSON Documents"]
-  PSQL --- VECTOR["Vector 
+  PSQL === VECTOR["Vector 
   Embeddings"]
-  PSQL --- M["MEDICARE
+  PSQL === M["MEDICARE
   DATA"]
-  PSQL --- C["CPT/HCPCS
+  PSQL === C["CPT/HCPCS
   CODES DETAILS"]
-  M --- N["Locality
+  M === N["Locality
   Data"]
-  C --- CPT["CPT Code
+  C === CPT["CPT Code
   Details"]
-  C --- HCPCS["HCPCS Code
+  C === HCPCS["HCPCS Code
   Details"]
-  C --- P["Physician
+  C === P["Physician
   Fee Schedules"]
 
 ```
