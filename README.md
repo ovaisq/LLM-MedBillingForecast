@@ -195,8 +195,10 @@ flowchart TD
                 subgraph blank5[ ]
                     subgraph JSON
                         subgraph blank6[ ]
-                            JAA["GPT Response: Summarized Note"]
-                            JAB["GPT Response: Recommended Diagnoses"]
+                            JAA["GPT Response:
+                                  Summarized Note"]
+                            JAB["GPT Response:
+                                  Recommended Diagnoses"]
                         end
                     end
                 end
@@ -206,10 +208,14 @@ flowchart TD
                 subgraph blank9[ ]
                     subgraph AJSON["JSON"]
                         subgraph blank10[ ]
-                            JAC["GPT Response: Recommended Diagnoses ICD-10 codes"]
-                            JAD["GPT Response: Recommended Diagnoses CPT codes"]
-                            JAE["GPT Response: Recommended Prescription"]
-                            JAF["GPT Response: Recommended Prescription CPT codes"]
+                            JAC["GPT Response: Recommended
+                                  Diagnoses ICD-10 codes"]
+                            JAD["GPT Response: Recommended
+                                Diagnoses CPT codes"]
+                            JAE["GPT Response: Recommended
+                                Prescription"]
+                            JAF["GPT Response: Recommended
+                                Prescription CPT codes"]
                             JAG["GPT Response: Keywords"]
                         end
                     end
