@@ -207,10 +207,11 @@ def calculate_medical_costs(patient_id):
     for cost in costs:
         medical_estimate, insurance_estimate = parse_and_calculate_estimates(cost)
 
-        if medical_estimate is not None:
-            print(cost['code'])
-            print('medical_estimate', '${:,.2f}'.format(medical_estimate))
-            print('insurance_estimate', '${:,.2f}'.format(insurance_estimate))
+        # TODO: build object so that it can be stored anywhere
+        #if medical_estimate is not None:
+        #    print(cost['code'])
+        #    print('medical_estimate', '${:,.2f}'.format(medical_estimate))
+        #    print('insurance_estimate', '${:,.2f}'.format(insurance_estimate))
 
 
 
