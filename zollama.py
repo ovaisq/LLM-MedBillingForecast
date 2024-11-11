@@ -338,7 +338,7 @@ def get_patient_record(patient_id):
         for a given patient_id
     """
 
-    sql_query = f"""
+    sql_query = """
                     SELECT
                         pn.patient_id,
                         pn.patient_note_id,
@@ -356,10 +356,10 @@ def get_patient_record(patient_id):
                         AND pd.patient_document_id = pc.patient_document_id
                     WHERE
                         pd.patient_document_id IS NOT NULL
-                        AND pn.patient_id = '{patient_id}';
+                        AND pn.patient_id = %s;
                  """
 
-    patient_record = get_select_query_result_dicts(sql_query)
+    patient_record = get_select_query_result_dicts(sql_query, (patient_id,))
 
     return patient_record
 
