@@ -156,14 +156,14 @@ def analyze_visit_note(visit_note_id):
 
     encrypt_analysis = CONFIG.getboolean('service', 'PATIENT_DATA_ENCRYPTION_ENABLED')
 
-    sql_query = f"""SELECT
+    sql_query = """SELECT
                         patient_id, patient_note_id, patient_note, patient_note ->> 'locality' as patient_locality
                    FROM
                         patient_notes
-                   WHERE patient_note_id = '{visit_note_id}';
+                   WHERE patient_note_id = %s;
                 """
 
-    visit_notes = get_select_query_result_dicts(sql_query)
+    visit_notes = get_select_query_result_dicts(sql_query, (visit_note_id,))
 
     for visit_note in visit_notes:
         logging.info(visit_note['patient_note_id'][0:10])
