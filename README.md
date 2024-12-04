@@ -106,12 +106,12 @@ graph TD;
         CPT/HCPCS
         Codes))
 
-    A --> B --> C --> D
-    D --> DA
-    C --> E
-    C --> F
-    F --> G
-    E --> DB
+    A --Prompt to AI-Agent--> B --Prompt to AI-Agent--> C --Prompt to AI-Agent--> D
+    D --Prompt to AI-Agent--> DA
+    C --Prompt to AI-Agent--> E
+    C --Prompt to AI-Agent--> F
+    F --Prompt to AI-Agent--> G
+    E --Prompt to AI-Agent--> DB
 ```
 
 ### Detailed Overview
