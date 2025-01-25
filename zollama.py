@@ -1,54 +1,5 @@
 #!/usr/bin/env python3
-"""Reddit Data Scrapper Service
-    ©2024, Ovais Quraishi
-
-    Collects submissions, comments for each submission, author of each submission,
-    author of each comment to each submission, and all comments for each author.
-    Also, subscribes to subreddit that a submission was posted to
-
-    Uses Gunicorn WSGI
-
-    Install Python Modules:
-        > pip3 install -r requirements.txt
-
-    Get Reddit API key: https://www.reddit.com/wiki/api/
-
-    Gen SSL key/cert
-        > openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 3650
-
-    Create Database and tables:
-        zollama.sql
-
-    Generate Flask App Secret Key:
-        >  python -c 'import secrets; print(secrets.token_hex())'
-
-    Update setup.config with pertinent information (see setup.config.template)
-
-    Run Service:
-    (see https://docs.gunicorn.org/en/stable/settings.html for config details)
-
-        > gunicorn --certfile=cert.pem \
-                   --keyfile=key.pem \
-                   --bind 0.0.0.0:5000 \
-                   zollama:app \
-                   --timeout 2592000 \
-                   --threads 4 \
-                   --reload
-
-    Customize it to your hearts content!
-
-    LICENSE: The 3-Clause BSD License - license.txt
-
-    TODO:
-        - Add Swagger Docs
-        - Add long running task queue
-            - Queue: task_id, task_status, end_point
-            - Kafka
-        - Revisit Endpoint logic add robust error handling
-        - Add scheduler app - to schedule some of these events
-            - scheduler checks whether or not a similar tasks exists
-        - Add logic to handle list of lists with NUM_ELEMENTS_CHUNK elementsimport configparser
-"""
+"""Agentic-AI based Medical Billing Forecaster"""
 
 import asyncio
 import json
@@ -71,7 +22,7 @@ from gptutils import prompt_chat
 from utils import ts_int_to_dt_obj
 from utils import serialize_datetime
 
-app = Flask('ZOllama-GPT')
+app = Flask('BillingForecast-GPT')
 
 # constants
 CONFIG = get_config()
