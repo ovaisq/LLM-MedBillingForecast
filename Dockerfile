@@ -6,8 +6,11 @@ WORKDIR /app
 # Debian 12 thing
 ENV PIP_BREAK_SYSTEM_PACKAGES 1
 
-# Copy necessary files to /app directory
+# Copy Python module requirements to /app
 COPY requirements.txt /app/
+# Install the dependencies
+RUN pip3 install --no-cache-dir -r requirements.txt
+
 COPY *.pem /app/
 COPY *.TXT /app/
 COPY text_encryption.key /app/

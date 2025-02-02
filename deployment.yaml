@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rollama-deployment
+  name: SRVC_NAME-deployment
   labels:
-    app: rollama
+    app: SRVC_NAME
     environment: production
     version: SEMVER
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: rollama
+      app: SRVC_NAME
   template:
     metadata:
       labels:
-        app: rollama
+        app: SRVC_NAME
         version: SEMVER
     spec:
       containers:
-      - name: rollama
-        image: docker:5000/rollama:SEMVER
+      - name: SRVC_NAME
+        image: DOCKER_HOST_URI/SRVC_NAME:SEMVER
         imagePullPolicy: Always
         ports:
-        - containerPort: 5001
+        - containerPort: 5009
         resources:
           requests:
             memory: "512Mi"

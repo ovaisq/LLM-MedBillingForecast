@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: rollama-service
+  name: SRVC_NAME-service
 spec:
   type: LoadBalancer
   selector:
-    app: rollama
+    app: SRVC_NAME
   ports:
     - port: 5001
       targetPort: 5001
