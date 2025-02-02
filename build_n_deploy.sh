@@ -54,5 +54,5 @@ apply_kubernetes $SEMVER
 # Clean up
 rm -f setup.config
 rm -f config_vals.txt
-rm -f deployment.yaml
-rm -f service.yaml
+git checkout deployment.yaml
+git checkout service.yaml
