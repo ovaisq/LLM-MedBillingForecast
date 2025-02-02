@@ -9,7 +9,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES 1
 # Copy Python module requirements to /app
 COPY requirements.txt /app/
 # Install the dependencies
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r /app/requirements.txt --upgrade
 
 COPY *.pem /app/
 COPY *.TXT /app/
@@ -21,8 +21,6 @@ COPY encryption.py /app/
 COPY clincodeutils.py /app/
 
 COPY run_srvc.sh /app/
-
-RUN pip3 install --uprgade -r /app/requirements.txt
 
 # Expose port 5009
 EXPOSE 5009
