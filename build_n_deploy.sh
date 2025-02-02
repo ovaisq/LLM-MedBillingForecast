@@ -4,7 +4,7 @@
 #		exists
 
 # Define a function for each operation
-build_docker() {
+docker_build() {
   cp setup.config.template setup.config
   sed -i "s|=PSQLHOST|=$PSQLHOST|" setup.config
   sed -i "s|=PSQLDB|=$PSQLDB|" setup.config
@@ -44,10 +44,11 @@ apply_kubernetes() {
 }
 
 # Read config
+source setup.config
 source config_vals.txt
 
 # Call the functions with the version as an argument
-build_docker $SEMVER
+docker_build $SEMVER
 push_image $SEMVER $SERVICE_NAME $DOCKER_HOST_URI
 apply_kubernetes $SEMVER
 
