@@ -12,7 +12,6 @@ COPY requirements.txt /app/
 RUN pip3 install --no-cache-dir -r /app/requirements.txt --upgrade
 
 COPY *.pem /app/
-COPY *.TXT /app/
 COPY text_encryption.key /app/
 
 COPY zollama.py /app/
