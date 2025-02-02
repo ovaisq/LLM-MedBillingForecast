@@ -1,20 +1,6 @@
 #!/usr/bin/env bash
 # run service ©2025, Ovais Quraishi
 
-SRVC_CONFIG_FILE=config_vals.txt
-
-read_config(){
-	local CONFIG_FILE="$1"
-	if [[ -f ${CONFIG_FILE} ]]; then
-		source ./${CONFIG_FILE}
-	else
-		echo "Unable to find ${CONFIG_FILE}. Exiting" >&2
-		exit -1
-	fi
-}
-
-read_config "${SRVC_CONFIG_FILE}"
-
 # Check if SSL variables are set, and confirm that values assigned to them are
 #	files that exist.
 # If not, use default paths.
