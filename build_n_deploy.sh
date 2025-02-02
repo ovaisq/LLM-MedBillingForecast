@@ -44,7 +44,6 @@ apply_kubernetes() {
 }
 
 # Read config
-source setup.config
 source config_vals.txt
 
 # Call the functions with the version as an argument
