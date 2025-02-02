@@ -2,13 +2,10 @@
 """ ©2024, Ovais Quraishi """
 
 import ast
-import asyncio
+
 import logging
 import re
 from gptutils import prompt_chat
-import simple_icd_10_cm as icddetails
-import icd10 as icdbilling
-from bs4 import BeautifulSoup
 
 def extract_icd10_codes(text):
     """Extract ICD-10 codes from a string.
@@ -45,7 +42,7 @@ def icd_10_code_details(icd_10_code):
 def icd_10_code_details_list(list_of_icd_10_codes):
     """Details about each icd-10 code found
     """
-    
+
     details_list = []
 
     for icd_10_code in list_of_icd_10_codes:
@@ -57,7 +54,7 @@ def icd_10_code_details_list(list_of_icd_10_codes):
     return details_list
 
 def lookup_icd_gpt(icd_code):
-    """Lookup icd codes using llama3.1
+    """Lookup icd codes using llama3.2
     """
 
     code_lookup_prompt = f"""Response MUST BE JSON ONLY, no additional comments. Tell me about ICD-10 code {icd_code}, is it billable? Respond in JSON only. Use the following python JSON template, \
@@ -81,12 +78,12 @@ def lookup_icd_gpt(icd_code):
         }}}}
     """
 
-    icd_details = asyncio.run(prompt_chat('llama3.1', code_lookup_prompt + '', False))
+    icd_details = prompt_chat('llama3.2', code_lookup_prompt + '', False)
 
     return icd_details
 
 def lookup_cpt_gpt(cpt_code_list):
-    """Lookup cpt codes using llama3.1
+    """Lookup cpt codes using llama3.2
     """
 
     cpt_details = []
@@ -96,13 +93,13 @@ def lookup_cpt_gpt(cpt_code_list):
         cpt code", "details": {{"short_description": "short description goes here", "long_description": "long \
         description goes here"}}}}"""
 
-        result = asyncio.run(prompt_chat('llama3.1', code_lookup_prompt + '', False))
+        result = prompt_chat('llama3.2', code_lookup_prompt + '', False)
         cpt_details.append(result['analysis'])
 
     return cpt_details
 
 def lookup_hcpcs_gpt(hcpcs_code_list):
-    """Lookup hcpcs codes using llama3.1
+    """Lookup hcpcs codes using llama3.2
     """
 
     hcpcs_details = []
@@ -112,7 +109,7 @@ def lookup_hcpcs_gpt(hcpcs_code_list):
         hcpcs code", "details": {{"short_description": "short description goes here", "long_description": "long \
         description goes here"}}}}"""
 
-        result = asyncio.run(prompt_chat('llama3.1', code_lookup_prompt + '', False))
+        result = prompt_chat('llama3.2', code_lookup_prompt + '', False)
         hcpcs_details.append(result['analysis'])
 
     return hcpcs_details

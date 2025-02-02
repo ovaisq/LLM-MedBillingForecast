@@ -1,5 +1,7 @@
 setup.config
 sonar_it.sh
+config_vals.txt
+*.log
 *.pem
 *.key
 *.p12

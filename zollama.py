@@ -2,6 +2,7 @@
 """Agentic-AI based Medical Billing Forecaster"""
 
 import asyncio
+import os
 import json
 import logging
 from flask import Flask, request, jsonify, abort
@@ -28,13 +29,13 @@ app = Flask('BillingForecast-GPT')
 CONFIG = get_config()
 
 NUM_ELEMENTS_CHUNK = 25
-LLMS = CONFIG.get('service','LLMS').split(',')
-MEDLLMS = CONFIG.get('service','MEDLLMS').split(',')
+LLMS = os.environ['LLMS'].split(',')
+MEDLLMS = os.environ['MEDLLMS'].split(',')
 
 # Flask app config
 app.config.update(
-                  JWT_SECRET_KEY=CONFIG.get('service', 'JWT_SECRET_KEY'),
-                  SECRET_KEY=CONFIG.get('service', 'APP_SECRET_KEY'),
+                  JWT_SECRET_KEY=os.environ['JWT_SECRET_KEY'],
+                  SECRET_KEY=os.environ['APP_SECRET_KEY'],
                   PERMANENT_SESSION_LIFETIME=172800 #2 days
                  )
 jwt = JWTManager(app)
@@ -46,11 +47,11 @@ def login():
 
     secret = request.json.get('api_key')
 
-    if secret != CONFIG.get('service','SRVC_SHARED_SECRET'):  # if the secret matches
+    if secret != os.environ['SRVC_SHARED_SECRET']:  # if the secret matches
         return jsonify({"message": "Invalid secret"}), 401
 
     # generate access token
-    access_token = create_access_token(identity=CONFIG.get('service','IDENTITY'))
+    access_token = create_access_token(identity=os.environ['IDENTITY'])
     return jsonify(access_token=access_token), 200
 
 @app.route('/analyze_visit_notes', methods=['GET'])
@@ -125,29 +126,28 @@ def analyze_visit_note(visit_note_id):
         content = decrypt_text(visit_note['patient_note']['note'])
 
         prompt = "What disease does this patient have? P is patient, D is Doctor"
-        summarized_obj = asyncio.run(prompt_chat('deepseek-llm', prompt + content))
+        summarized_obj = prompt_chat('phi4', prompt + content)
 
         if summarized_obj:
             recommended_diagnosis = decrypt_text(summarized_obj['analysis'])
 
             # process diagnosis for ICD/CPT codes
             for llm in MEDLLMS:
-                analyzed_obj = asyncio.run(
-                                           prompt_chat(
+                analyzed_obj =             prompt_chat(
                                                        llm,
                                                        'Diagnose this patient: ' +
                                                        recommended_diagnosis
                                                       )
-                                          )
+                                          
 
                 # decrypt analysis result for ICD/CPT processing only
                 decrypted_analysis = decrypt_text(analyzed_obj['analysis'])
-                get_store_icd_cpt_codes(
+                asyncio.run(get_store_icd_cpt_codes(
                                         patient_id,
                                         analyzed_obj['shasum_512'],
                                         llm,
                                         decrypted_analysis
-                                       )
+                                       ))
 
                 if not encrypt_analysis:
                     app.logger.error('URGENT: Patient Data Encryption disabled! \
@@ -180,61 +180,40 @@ def analyze_visit_note(visit_note_id):
         else:
             return False
 
-def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_content):
-    """Get icd and cpt codes for the diagnosis and store the two
-        as JSON in the table
-    """
-
+async def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_content):
+    """Get ICD and CPT codes for the diagnosis and store them as JSON in the table."""
+    
     prompts = {
-               'icd': 'What are the ICD codes for this diagnosis? ',
-               'cpt': 'What are the CPT codes for this diagnosis? ',
-               'hcpcs': 'What are the HCPCS codes for this diagnosis? ',
-               'prescription': 'What medication to prescribe for the diagnosis? ',
-               'prescription_cpt': 'What are the CPT codes for these prescriptions? ',
-               'prescription_hcpcs': 'What are the HCPCS codes for these prescriptions? '
-              }
+        'icd': 'What are the ICD codes for this diagnosis? ',
+        'cpt': 'What are the CPT codes for this diagnosis? ',
+        'hcpcs': 'What are the HCPCS codes for this diagnosis? ',
+        'prescription': 'What medication to prescribe for the diagnosis? ',
+        'prescription_cpt': 'What are the CPT codes for these prescriptions? ',
+        'prescription_hcpcs': 'What are the HCPCS codes for these prescriptions? '
+    }
 
-    # adjust prompts if llm is 'meditron'
+    # Adjust prompts if llm is 'meditron'
     if llm == 'meditron':
         prompts['prescription_cpt'] = prompts['prescription']
 
-    # do not encrypt
-    icd_obj = asyncio.run(prompt_chat(llm, prompts['icd'] + analyzed_content, False))
+    async def fetch_code(prompt_key, content):
+        return prompt_chat(llm, prompts[prompt_key] + content, False)
 
-    # do not encrypt
-    cpt_obj = asyncio.run(prompt_chat(llm, prompts['cpt'] + analyzed_content, False))
+    # Gather all asynchronous tasks
+    icd_obj, cpt_obj, hcpcs_obj, prescription_obj = await asyncio.gather(
+        fetch_code('icd', analyzed_content),
+        fetch_code('cpt', analyzed_content),
+        fetch_code('hcpcs', analyzed_content),
+        fetch_code('prescription', analyzed_content)
+    )
 
-    # do not encrypt
-    hcpcs_obj = asyncio.run(prompt_chat(llm, prompts['hcpcs'] + analyzed_content, False))
-
-    # do not encrypt
-    prescription_obj = asyncio.run(
-                                   prompt_chat(
-                                               llm,
-                                               prompts['prescription'] + analyzed_content,
-                                               False
-                                              )
-                                  )
     prescription_analysis = prescription_obj['analysis']
 
-    # do not encrypt
-    prescription_cpt_obj = asyncio.run(
-                                       prompt_chat(
-                                                   llm,
-                                                   prompts['prescription_cpt'] +
-                                                   prescription_analysis,
-                                                   False
-                                                  )
-                                      )
-    # do not encrypt
-    prescription_hcpcs_obj = asyncio.run(
-                                         prompt_chat(
-                                                     llm,
-                                                     prompts['prescription_hcpcs'] +
-                                                     prescription_analysis,
-                                                     False
-                                                    )
-                                        )
+    # Further gather tasks for prescriptions
+    prescription_cpt_obj, prescription_hcpcs_obj = await asyncio.gather(
+        fetch_code('prescription_cpt', prescription_analysis),
+        fetch_code('prescription_hcpcs', prescription_analysis)
+    )
 
     icd_10_code_details = icd_10_code_details_list(extract_icd10_codes(icd_obj['analysis']))
     prescription_cpt_details = lookup_cpt_gpt(extract_cpt_codes(prescription_cpt_obj['analysis']))
@@ -243,44 +222,44 @@ def get_store_icd_cpt_codes(patient_id, patient_document_id, llm, analyzed_conte
     hcpcs_codes = extract_hcpcs_codes(hcpcs_obj['analysis'])
 
     codes_document = {
-                      'icd': {
-                              'timestamp': serialize_datetime(icd_obj['timestamp']),
-                              'codes': extract_icd10_codes(icd_obj['analysis']),
-                              'details': icd_10_code_details
-                             },
-                      'cpt': {
-                              'timestamp': serialize_datetime(cpt_obj['timestamp']),
-                              'codes': extract_cpt_codes(cpt_obj['analysis']),
-                              'details': lookup_cpt_gpt(extract_cpt_codes(cpt_obj['analysis']))
-                             },
-                      'hcpcs': {
-                                'timestamp': serialize_datetime(hcpcs_obj['timestamp']),
-                                'codes': hcpcs_codes,
-                                'details': lookup_hcpcs_gpt(hcpcs_codes)
-                               },
-                      'prescription': {
-                                       'timestamp': serialize_datetime(prescription_obj['timestamp']),
-                                       'prescriptions': prescription_obj['analysis']
-                                      },
-                      'prescription_cpt': {
-                                           'timestamp': serialize_datetime(prescription_cpt_obj['timestamp']),
-                                           'codes': extract_cpt_codes(prescription_cpt_obj['analysis']),
-                                           'details': prescription_cpt_details
-                                          },
-                      'prescription_hcpcs': {
-                                             'timestamp': serialize_datetime(prescription_hcpcs_obj['timestamp']),
-                                             'codes': extract_cpt_codes(prescription_hcpcs_obj['analysis']),
-                                             'details': prescription_hcpcs_details
-                                            }
-                     }
+        'icd': {
+            'timestamp': serialize_datetime(icd_obj['timestamp']),
+            'codes': extract_icd10_codes(icd_obj['analysis']),
+            'details': icd_10_code_details
+        },
+        'cpt': {
+            'timestamp': serialize_datetime(cpt_obj['timestamp']),
+            'codes': extract_cpt_codes(cpt_obj['analysis']),
+            'details': lookup_cpt_gpt(extract_cpt_codes(cpt_obj['analysis']))
+        },
+        'hcpcs': {
+            'timestamp': serialize_datetime(hcpcs_obj['timestamp']),
+            'codes': hcpcs_codes,
+            'details': lookup_hcpcs_gpt(hcpcs_codes)
+        },
+        'prescription': {
+            'timestamp': serialize_datetime(prescription_obj['timestamp']),
+            'prescriptions': prescription_obj['analysis']
+        },
+        'prescription_cpt': {
+            'timestamp': serialize_datetime(prescription_cpt_obj['timestamp']),
+            'codes': extract_cpt_codes(prescription_cpt_obj['analysis']),
+            'details': prescription_cpt_details
+        },
+        'prescription_hcpcs': {
+            'timestamp': serialize_datetime(prescription_hcpcs_obj['timestamp']),
+            'codes': extract_hcpcs_codes(prescription_hcpcs_obj['analysis']),
+            'details': prescription_hcpcs_details
+        }
+    }
 
     codes_data = {
-                  'timestamp': serialize_datetime(ts_int_to_dt_obj()),
-                  'patient_id': patient_id,
-                  'patient_document_id': patient_document_id,
-                  #json.loads this when read back from database
-                  'codes_document': json.dumps(codes_document) 
-                 }
+        'timestamp': serialize_datetime(ts_int_to_dt_obj()),
+        'patient_id': patient_id,
+        'patient_document_id': patient_document_id,
+        # json.loads this when read back from the database
+        'codes_document': json.dumps(codes_document)
+    }
 
     insert_data_into_table('patient_codes', codes_data)
 

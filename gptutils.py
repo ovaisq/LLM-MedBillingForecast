@@ -8,7 +8,7 @@ import logging
 import httpx
 import sys
 
-from ollama import AsyncClient
+from ollama import Client
 
 from config import get_config
 from encryption import encrypt_text
@@ -18,7 +18,7 @@ from utils import check_endpoint_health
 
 CONFIG = get_config()
 
-async def prompt_chat(llm,
+def prompt_chat(llm,
                       content,
                       encrypt_analysis=CONFIG.getboolean('service',
                                                          'PATIENT_DATA_ENCRYPTION_ENABLED')
@@ -33,10 +33,10 @@ async def prompt_chat(llm,
        return False
 
     dt = ts_int_to_dt_obj()
-    client = AsyncClient(host=ollama_server)
+    client = Client(host=ollama_server)
     logging.info('Running for %s', llm)
     try:
-        response = await client.chat(
+        response = client.chat(
                                         model=llm,
                                         stream=False,
                                         messages=[
