@@ -5,9 +5,12 @@ https://github.com/user-attachments/assets/0d374544-b74c-4286-8a65-3d5ee6f61656
 
 
 ### General Overview
-This setup aims to provide near-real-time AgenticAI assistance. Agents commence the process of generating guesses immediately after a patient doctor visit concludes, before a care provider has started entering summaries, diagnoses, and ICD codes. This initiative is intended to eliminate the need for manual collation tasks at the end of each day, shift, or month. Real-time access to the billing forecast and the actual amount billed up to that point is provided to back-office staff.
+This setup aims to provide near-real-time AgenticAI assistance for healthcare settings. Agents begin generating guesses immediately after a patient-doctor visit concludes, even before a care provider starts entering summaries, diagnoses, and ICD codes. The initiative is designed to eliminate the need for manual collation tasks at the end of each day, shift, or month. Back-office staff gain real-time access to both the billing forecast and the actual amount billed up to that point.
 
-In this scenario, agents swiftly take the visit note, often even faster, and proceed to a simulation of note summarization and diagnosis. Subsequently, they provide prescriptions and lab work recommendations based on the diagnosis, while simultaneously checking the fee schedule based on the medical insurance coverage, which may include a single provider or a combination of (Medicare, Medical, etc.). As the care provider walks through the actual workflow, agents learn, correct, or update their initial guesses. This process repeats itself.
+In this scenario, agents quickly take over the visit note, often even faster than care providers can process it. They then proceed with simulating note summarization and diagnosis. Following this, they offer prescriptions and lab work recommendations based on the diagnosis while simultaneously checking the fee schedule according to the patient's medical insurance coverage, which may include a single provider or combinations like Medicare or Medical.
+
+As the care provider goes through their actual workflow, agents continuously learn from it, making corrections or updates to their initial guesses. This iterative process repeats itself, enhancing the system's accuracy and efficiency over time.
+
 
 ```mermaid
 %%{init: {'theme': 'forest','themeVariables': {'lineColor': 'Blue'}}}%%
