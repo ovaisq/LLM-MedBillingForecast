@@ -7,48 +7,56 @@ import hashlib
 import logging
 import httpx
 import sys
+from typing import Any, Optional
 
 from ollama import Client
 
-from config import get_config
+from config import get_config, get_config_with_defaults, ConfigError
 from encryption import encrypt_text
 from utils import ts_int_to_dt_obj
 from utils import sanitize_string
 from utils import check_endpoint_health
 
-CONFIG = get_config()
+# Try to get config, use defaults if file not found
+try:
+    CONFIG = get_config()
+except (FileNotFoundError, ConfigError):
+    CONFIG = get_config_with_defaults()
 
-def prompt_chat(llm,
-                      content,
-                      encrypt_analysis=CONFIG.getboolean('service',
-                                                         'PATIENT_DATA_ENCRYPTION_ENABLED')
-                     ):
+
+def prompt_chat(llm: str,
+                content: str,
+                encrypt_analysis: Optional[bool] = None
+               ) -> Optional[dict[str, Any]]:
     """Llama Chat Prompting and response
     """
 
-    ollama_server = CONFIG.get('service','OLLAMA_API_URL')
+    ollama_server = CONFIG.get('service', 'OLLAMA_API_URL')
 
     if not check_endpoint_health(ollama_server):
-       logging.error('Ollama Server %s is not available', ollama_server)
-       return False
+        logging.error('Ollama Server %s is not available', ollama_server)
+        return False
+
+    if encrypt_analysis is None:
+        encrypt_analysis = CONFIG.getboolean('service', 'PATIENT_DATA_ENCRYPTION_ENABLED')
 
     dt = ts_int_to_dt_obj()
     client = Client(host=ollama_server)
     logging.info('Running for %s', llm)
     try:
         response = client.chat(
-                                        model=llm,
-                                        stream=False,
-                                        messages=[
-                                                  {
-                                                   'role': 'user',
-                                                   'content': content
-                                                  },
-                                                 ],
-                                        options = {
-                                                    'temperature' : 0
-                                                  }
-                                    )
+                                model=llm,
+                                stream=False,
+                                messages=[
+                                    {
+                                        'role': 'user',
+                                        'content': content
+                                    },
+                                ],
+                                options={
+                                    'temperature': 0
+                                }
+                            )
 
         # chatgpt analysis
         analysis = response['message']['content']
@@ -66,13 +74,13 @@ def prompt_chat(llm,
             analysis = encrypt_text(analysis).decode('utf-8')
 
         analyzed_obj = {
-                        'timestamp' : dt,
-                        'shasum_512' : analysis_sha512,
-                        'analysis' : analysis
+                        'timestamp': dt,
+                        'shasum_512': analysis_sha512,
+                        'analysis': analysis
                         }
 
         return analyzed_obj
     except (httpx.ReadError, httpx.ConnectError, httpx.RemoteProtocolError) as e:
         logging.error('Error: %s', e.args[0])
-        logging.error('Unable to reach Ollama Server: %s', CONFIG.get('service','OLLAMA_API_URL'))
+        logging.error('Unable to reach Ollama Server: %s', ollama_server)
         return False

@@ -1,5 +1,8 @@
 beautifulsoup4
 cryptography
+fastapi[standard]
+uvicorn[standard]
+python-jose[cryptography]
 Flask
 Flask_JWT_Extended
 httpx

@@ -2,28 +2,43 @@
 
 import unittest
 import json
+import os
+import sys
 from unittest.mock import patch, MagicMock
 
-from config import get_config
-CONFIG = get_config()
-SRVC_SHARED_SECRET=CONFIG.get('service', 'SRVC_SHARED_SECRET')
+# Set up path to find config.py and setup.config
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+os.chdir(SCRIPT_DIR)
+sys.path.insert(0, SCRIPT_DIR)
 
-# Import the Flask app
-from zollama import app
+from config import get_config_with_defaults
+CONFIG = get_config_with_defaults()
+SRVC_SHARED_SECRET = CONFIG.get('service', 'SRVC_SHARED_SECRET')
 
-class TestFlaskApp(unittest.TestCase):
+# Import the FastAPI app
+from app.main import app
+from app.core.config import settings
+from app.core.security import get_current_user
+
+class TestFastAPIApp(unittest.TestCase):
 
     def setUp(self):
-        """Set up Flask app for testing."""
-        app.config['TESTING'] = True
-        self.app = app.test_client()
+        """Set up FastAPI app for testing."""
+        from fastapi.testclient import TestClient
+        self.client = TestClient(app)
+
+        # Override dependencies to bypass authentication for protected endpoints
+        def mock_get_current_user():
+            return {"sub": "test-user"}
+
+        app.dependency_overrides[get_current_user] = mock_get_current_user
 
         # Perform login to obtain JWT token
         self.jwt_token = self.perform_login()
 
     def tearDown(self):
-        """Tear down Flask app after testing."""
-        pass
+        """Tear down FastAPI app after testing."""
+        app.dependency_overrides.clear()
 
     def perform_login(self):
         """Perform login to obtain JWT token."""
@@ -32,86 +47,89 @@ class TestFlaskApp(unittest.TestCase):
         login_data = {
             'api_key': SRVC_SHARED_SECRET
         }
-        headers = {
-            'Content-Type' : 'application/json'
-            }
 
-        # Send POST request to /login endpoint
-        response = self.app.post('/login', json=login_data, headers=headers)
+        # Send POST request to /api/v1/login endpoint
+        response = self.client.post('/api/v1/login', json=login_data)
 
         # Extract JWT token from response
-        data = json.loads(response.data)
+        data = response.json()
         jwt_token = data.get('access_token')
 
         return jwt_token
+
+    def test_health_endpoint(self):
+        """Test /api/v1/health endpoint."""
+        response = self.client.get('/api/v1/health')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('status', data)
+        self.assertEqual(data['status'], 'healthy')
 
     def test_login_endpoint(self):
         """Test /login endpoint."""
 
         # Define test data
         test_data = {
-            'api_key': SRVC_SHARED_SECRET 
+            'api_key': SRVC_SHARED_SECRET
         }
 
-        headers = {
-            'Content-Type' : 'application/json'
-            }
-
-        # Send POST request to /login endpoint
-        response = self.app.post('/login', json=test_data, headers=headers)
+        # Send POST request to /api/v1/login endpoint
+        response = self.client.post('/api/v1/login', json=test_data)
 
         # Check if response status code is 200 OK
         self.assertEqual(response.status_code, 200)
 
         # Check if response contains access token
-        data = json.loads(response.data)
+        data = response.json()
         self.assertIn('access_token', data)
 
-    @patch('zollama.analyze_visit_notes')
-    def test_analyze_visit_notes_endpoint(self, mock_analyze_visit_notes):
-        """Test /analyze_visit_notes endpoint."""
-
-        # Mock the analyze_visit_notes function
-        mock_analyze_visit_notes.return_value = True
-
-        # Define headers with JWT token
-        headers = {
-            'Authorization': f'Bearer {self.jwt_token}'
+    def test_login_invalid_key(self):
+        """Test /login endpoint with invalid key."""
+        test_data = {
+            'api_key': 'invalid_key'
         }
+        response = self.client.post('/api/v1/login', json=test_data)
+        self.assertEqual(response.status_code, 401)
 
-        # Send GET request to /analyze_visit_notes endpoint with headers
-        response = self.app.get('/analyze_visit_notes', headers=headers)
+    def test_analyze_visit_notes_endpoint(self):
+        """Test /api/v1/analyze-visit-notes endpoint."""
+
+        with patch('app.api.v1.endpoints.analyze_visit_notes') as mock_analyze_visit_notes:
+            mock_analyze_visit_notes.return_value = True
+
+            # Send GET request to /api/v1/analyze-visit-notes endpoint
+            response = self.client.get('/api/v1/analyze-visit-notes')
 
         # Check if response status code is 200 OK
         self.assertEqual(response.status_code, 200)
 
         # Check if response contains expected message
-        data = json.loads(response.data)
-        self.assertEqual(data['message'], 'analyze_visit_notes endpoint')
+        data = response.json()
+        self.assertEqual(data['message'], 'analyze_visit_notes completed')
 
-    @patch('zollama.analyze_visit_note')
-    def test_analyze_visit_note_endpoint(self, mock_analyze_visit_note):
-        """Test /analyze_visit_note endpoint."""
+    def test_analyze_visit_note_endpoint(self):
+        """Test /api/v1/analyze-visit-note endpoint."""
 
-        # Mock the analyze_visit_note function
-        mock_analyze_visit_note.return_value = True
+        with patch('app.api.v1.endpoints.analyze_visit_note') as mock_analyze_visit_note:
+            mock_analyze_visit_note.return_value = True
 
-        # Define headers with JWT token
-        headers = {
-            'Authorization': f'Bearer {self.jwt_token}'
-        }
-
-        # Send GET request to /analyze_visit_note endpoint with visit_note_id parameter
-        response = self.app.get('/analyze_visit_note?visit_note_id=1', headers=headers)
+            # Send GET request to /api/v1/analyze-visit-note endpoint with visit_note_id parameter
+            response = self.client.get('/api/v1/analyze-visit-note?visit_note_id=1')
 
         # Check if response status code is 200 OK
         self.assertEqual(response.status_code, 200)
 
         # Check if response contains expected message
-        data = json.loads(response.data)
-        self.assertEqual(data['message'], 'analyze_visit_note endpoint')
+        data = response.json()
+        self.assertEqual(data['message'], 'analyze_visit_note completed')
 
-    # Add more test cases for other endpoints...
+    def test_root_endpoint(self):
+        """Test / endpoint."""
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('message', data)
+        self.assertIn('version', data)
 
 if __name__ == '__main__':
     unittest.main()
